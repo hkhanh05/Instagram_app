@@ -1,0 +1,1 @@
+//Text cố định (Login, Signup,...)

@@ -1,0 +1,1 @@
+// Ghi chú (giống IG notes)
