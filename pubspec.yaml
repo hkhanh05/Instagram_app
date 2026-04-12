@@ -43,9 +43,9 @@ flutter:
   uses-material-design: true
 
   # ASSETS (ảnh local)
-  assets:
-    - assets/images/
-    - assets/icons/
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
 
   # FONT (optional - nếu bạn muốn custom font)
   # fonts:

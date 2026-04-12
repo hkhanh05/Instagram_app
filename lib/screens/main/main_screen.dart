@@ -19,12 +19,12 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
   // Danh sách các màn hình
-  final List<Widget> _screens = const [
-    FeedScreen(),
-    SearchScreen(),
-    CreatePostScreen(),
-    MessageScreen(),
-    ProfileScreen(),
+  final List<Widget> _screens = [
+    const FeedScreen(),
+    const SearchScreen(),
+    const CreatePostScreen(),
+    const MessageScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -74,7 +74,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-
 
 /*
 ================= GIẢI THÍCH =================
