@@ -44,8 +44,8 @@ flutter:
 
   # ASSETS (ảnh local)
   assets:
-    - assets/images/
-    - assets/icons/
+    # - assets/images/
+    # - assets/icons/
 
   # FONT (optional - nếu bạn muốn custom font)
   # fonts:
