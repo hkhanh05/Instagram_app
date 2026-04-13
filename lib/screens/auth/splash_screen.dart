@@ -1,6 +1,7 @@
 // là màn hình hiển thị khi chạy một ứng dụng phần mềm
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Image.asset('assets/icons/ins_logo.svg', height: 60),
+        child: SvgPicture.asset('assets/icons/ins_logo.svg', height: 60),
       ),
     );
   }
