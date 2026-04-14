@@ -11,72 +11,80 @@ class MessageScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Messages'),
       ),
-      body: Column(
-        children: [
-          // ===== SEARCH BAR =====
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+
+      // 👇 DÙNG SafeArea để tránh lỗi Android
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            // ===== SEARCH BAR =====
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // ===== NOTES (AVATAR + TEXT) =====
-          SizedBox(
-            height: 130,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: const [
-                NoteItem(note: "Hello 👋", username: "user1"),
-                NoteItem(note: "Busy", username: "user2"),
-                NoteItem(note: "Call me", username: "user3"),
-              ],
+            // ===== NOTES =====
+            SizedBox(
+              height: 120, // 👈 giảm để tránh overflow
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: const [
+                  NoteItem(note: "Hello 👋", username: "user1"),
+                  NoteItem(note: "Busy", username: "user2"),
+                  NoteItem(note: "Call me", username: "user3"),
+                ],
+              ),
             ),
-          ),
 
-          // ===== LINE =====
-          const Divider(),
+            const Divider(height: 1),
 
-          // ===== HEADER =====
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  "Tin nhắn",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "Tin nhắn đang chờ",
-                  style: TextStyle(color: Colors.blue),
-                ),
-              ],
+            // ===== HEADER =====
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: const [
+                  Text(
+                    "Tin nhắn",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "Tin nhắn đang chờ",
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          const SizedBox(height: 5),
-
-          // ===== CHAT LIST =====
-          Expanded(
-            child: ListView.builder(
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return const ChatItem();
-              },
+            // ===== CHAT LIST =====
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.zero, // 👈 tránh lỗi layout
+                itemCount: 10,
+                itemBuilder: (context, index) {
+                  return const ChatItem();
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

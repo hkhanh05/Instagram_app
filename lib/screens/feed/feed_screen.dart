@@ -17,9 +17,12 @@ class FeedScreen extends StatelessWidget {
           SizedBox(width: 10),
         ],
       ),
-      body: Column(
+
+      // ❗ DÙNG ListView thay vì Column
+      body: ListView(
         children: [
-          // STORY LIST
+
+          // STORY
           SizedBox(
             height: 120,
             child: ListView.builder(
@@ -36,14 +39,14 @@ class FeedScreen extends StatelessWidget {
 
           const Divider(),
 
-          // POST LIST
-          Expanded(
-            child: ListView.builder(
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return const PostItem();
-              },
-            ),
+          // POSTS
+          ListView.builder(
+            shrinkWrap: true, // 👈 QUAN TRỌNG
+            physics: const NeverScrollableScrollPhysics(), // 👈 QUAN TRỌNG
+            itemCount: 5,
+            itemBuilder: (context, index) {
+              return const PostItem();
+            },
           ),
         ],
       ),
