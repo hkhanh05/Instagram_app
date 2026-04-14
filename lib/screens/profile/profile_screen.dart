@@ -1,14 +1,23 @@
+<<<<<<< HEAD
+// Profile chính
+import 'package:flutter/material.dart';
+=======
 import 'package:flutter/material.dart';
 import '../profile/followers_screen.dart';
 import '../profile/following_screen.dart';
 import '../settings/settings_screen.dart';
 import '../profile/edit_profile_screen.dart';
+>>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+    return const Scaffold(
+      body: Center(child: Text('Profile Screen')),
+=======
     return Scaffold(
       appBar: AppBar(
         title: const Text('username'),
@@ -229,6 +238,7 @@ class _StatItem extends StatelessWidget {
           Text(label),
         ],
       ),
+>>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
     );
   }
 }
