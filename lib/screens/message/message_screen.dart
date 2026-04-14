@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import '../../widgets/message/chat_item.dart';
 import '../../widgets/message/note_item.dart';
-=======
->>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
 
 class MessageScreen extends StatelessWidget {
   const MessageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages'),
       ),
 
-      // 👇 DÙNG SafeArea để tránh lỗi Android
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +38,7 @@ class MessageScreen extends StatelessWidget {
 
             // ===== NOTES =====
             SizedBox(
-              height: 120, // 👈 giảm để tránh overflow
+              height: 120,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: const [
@@ -80,7 +75,7 @@ class MessageScreen extends StatelessWidget {
             // ===== CHAT LIST =====
             Expanded(
               child: ListView.builder(
-                padding: EdgeInsets.zero, // 👈 tránh lỗi layout
+                padding: EdgeInsets.zero,
                 itemCount: 10,
                 itemBuilder: (context, index) {
                   return const ChatItem();
@@ -89,11 +84,6 @@ class MessageScreen extends StatelessWidget {
             ),
           ],
         ),
-=======
-    return const Scaffold(
-      body: Center(
-        child: Text('Message Screen'),
->>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
       ),
     );
   }
