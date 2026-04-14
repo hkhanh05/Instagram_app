@@ -3,6 +3,7 @@ import 'edit_profile_screen.dart';
 import 'follow_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
+import '../story/story_view_screen.dart';
 
 // --- MÀN HÌNH PROFILE CHÍNH ---
 class ProfileScreen extends StatelessWidget {
@@ -163,22 +164,82 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStoryHighlights() {
-    return SizedBox(
-      height: 100,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 5,
-        itemBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(children: [
-            CircleAvatar(radius: 30, backgroundColor: Colors.grey[200], child: const Icon(Icons.add, color: Colors.black)),
-            Text('Story $index', style: const TextStyle(fontSize: 12)),
-          ]),
-        ),
-      ),
-    );
-  }
+Widget _buildStoryHighlights() {
+  // 1. Dữ liệu giả lập (Mock UI Data) với link ảnh thực tế
+  final List<Map<String, String>> highlights = [
+    {'title': 'Mới', 'isAdd': 'true'},
+    {'title': 'Du lịch', 'img': 'https://picsum.photos/200?random=10'},
+    {'title': 'Thú cưng', 'img': 'https://picsum.photos/200?random=11'},
+    {'title': 'Đồ ăn', 'img': 'https://picsum.photos/200?random=12'},
+    {'title': 'Học tập', 'img': 'https://picsum.photos/200?random=13'},
+  ];
+
+  return Container(
+    height: 110, // Tăng chiều cao để không bị cấn chữ
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: highlights.length,
+      itemBuilder: (context, index) {
+        final item = highlights[index];
+        bool isAddButton = item['isAdd'] == 'true';
+
+        return GestureDetector(
+          onTap: () {
+            if (isAddButton) {
+              // Xử lý khi bấm nút Thêm mới
+              print("Thêm Highlight mới");
+            } else {
+              // 🔥 CHUYỂN TRANG: Truyền initialUser khớp với StoryViewScreen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StoryViewScreen(
+                    initialUser: (index - 1) % 3, // Trừ 1 vì index 0 là nút "Mới"
+                  ),
+                ),
+              );
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Column(
+              children: [
+                // 🔥 CONTAINER TẠO VIỀN TRẮNG QUANH STORY
+                Container(
+                  padding: const EdgeInsets.all(2), // Khoảng cách tạo viền trắng
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: CircleAvatar(
+                    radius: 30,
+                    // 🔥 XỬ LÝ HÌNH NỀN HOẶC ICON
+                    backgroundColor: isAddButton ? Colors.white : Colors.grey[200],
+                    // Nếu là nút Add thì null, ngược lại hiện ảnh nền
+                    backgroundImage: isAddButton 
+                        ? null 
+                        : NetworkImage(item['img']!),
+                    // Nếu là nút Add thì hiện Icon, ngược lại null
+                    child: isAddButton 
+                        ? const Icon(Icons.add, color: Colors.black, size: 30) 
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                // TÊN HIGHLIGHT
+                Text(
+                  item['title']!,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildTabs() => const Padding(
         padding: EdgeInsets.symmetric(vertical: 10),
