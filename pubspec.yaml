@@ -35,7 +35,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_svg: ^2.2.4
   flutter_lints: ^3.0.2
 
 flutter:
@@ -44,7 +44,10 @@ flutter:
   
 
   # FONT (optional - nếu bạn muốn custom font)
-  # fonts:
-  #   - family: Roboto
-  #     fonts:
-  #       - asset: assets/fonts/Roboto-Regular.ttf
+  fonts:
+    - family: LobsterTwo
+      fonts:
+        - asset: assets/fonts/LobsterTwo-Italic.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_18pt-Regular.ttf

@@ -1,6 +1,7 @@
 // Cấu hình MaterialApp, theme, route
 import 'package:flutter/material.dart';
 import 'screens/main/main_screen.dart';
+//import 'screens/auth/register_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -15,9 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.blue,
-
         scaffoldBackgroundColor: Colors.white,
-
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -26,6 +25,7 @@ class MyApp extends StatelessWidget {
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            fontFamily: 'Roboto',
           ),
         ),
       ),

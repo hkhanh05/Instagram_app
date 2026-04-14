@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import '../../widgets/post/post_item.dart';
 import '../../widgets/story/story_item.dart';
+=======
+>>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return Scaffold(
       appBar: AppBar(
         title: const Text('Instagram'),
@@ -53,3 +57,12 @@ class FeedScreen extends StatelessWidget {
     );
   }
 }
+=======
+    return const Scaffold(
+      body: Center(
+        child: Text('Feed Screen'),
+      ),
+    );
+  }
+}
+>>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3

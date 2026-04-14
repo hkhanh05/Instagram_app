@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import '../../widgets/message/chat_item.dart';
 import '../../widgets/message/note_item.dart';
+=======
+>>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
 
 class MessageScreen extends StatelessWidget {
   const MessageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages'),
@@ -85,6 +89,11 @@ class MessageScreen extends StatelessWidget {
             ),
           ],
         ),
+=======
+    return const Scaffold(
+      body: Center(
+        child: Text('Message Screen'),
+>>>>>>> 6327d897ed263bb7a2045b5003bf28aaa5c808f3
       ),
     );
   }
