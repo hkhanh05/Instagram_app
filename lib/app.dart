@@ -1,6 +1,7 @@
 // Cấu hình MaterialApp, theme, route
 import 'package:flutter/material.dart';
 import 'screens/main/main_screen.dart';
+//import 'screens/auth/register_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            fontFamily: 'Roboto',
           ),
         ),
       ),
