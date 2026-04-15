@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../controllers/Login_controller.dart';
+import "../auth/register_screen.dart";
 
 import "../../models/user_model.dart";
 import '../main/main_screen.dart';
@@ -73,24 +74,22 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _toggleMode() {
-    setState(() {
-      _isRegisterMode = !_isRegisterMode;
-      _emailController.clear();
-      _passwordController.clear();
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final titleText = _isRegisterMode ? 'Create new account' : 'Welcome back';
-    final actionText = _isRegisterMode ? 'Register' : 'Log in';
-    final switchText = _isRegisterMode
-        ? 'Already have an account? Sign in'
-        : 'Don\'t have an account? Register';
+    // Logic bây giờ chỉ tập trung vào Login
+    const titleText = 'Welcome back';
+    const actionText = 'Log in';
+    const switchText = 'Don\'t have an account? Register';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isRegisterMode ? 'Register' : 'Login'),
+        title: const Text('Login'),
         centerTitle: true,
       ),
       backgroundColor: Colors.white,
@@ -108,15 +107,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 80,
                   ),
                   const SizedBox(height: 30),
-                  Text(
+                  const Text(
                     titleText,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -132,11 +133,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (value) {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) return 'Vui lòng nhập email';
-                      if (!text.contains('@')) return 'Email không hợp lệ';
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
+
+                  // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscureText,
@@ -149,70 +151,51 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide.none,
                       ),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureText
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
+                        icon: Icon(_obscureText
+                            ? Icons.visibility_off
+                            : Icons.visibility),
+                        onPressed: () =>
+                            setState(() => _obscureText = !_obscureText),
                       ),
                     ),
                     validator: (value) {
-                      final text = value?.trim() ?? '';
-                      if (text.isEmpty) return 'Vui lòng nhập mật khẩu';
-                      if (text.length < 6)
-                        return 'Mật khẩu phải ít nhất 6 ký tự';
+                      if ((value ?? '').isEmpty)
+                        return 'Vui lòng nhập mật khẩu';
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
+
+                  // Nút Đăng nhập
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+                          borderRadius: BorderRadius.circular(30)),
                     ),
-                    onPressed: _submit,
-                    child: Text(actionText),
+                    onPressed: _submit, // Hàm này sẽ gọi _loginController.login
+                    child: const Text(actionText),
                   ),
+
                   const SizedBox(height: 12),
-                  if (!_isRegisterMode)
-                    TextButton(
-                      onPressed: () {
-                        _showMessage(
-                          'Please use register flow to reset password.',
-                        );
-                      },
-                      child: const Text('Forgot password?'),
-                    ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    onPressed: () {},
-                    icon: const Icon(Icons.facebook, color: Colors.blue),
-                    label: const Text('Log in with Facebook'),
+                  TextButton(
+                    onPressed: () {}, // Quên mật khẩu
+                    child: const Text('Forgot password?'),
                   ),
+
                   const SizedBox(height: 16),
+                  // Nút Chuyển sang trang Đăng ký
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+                          borderRadius: BorderRadius.circular(30)),
                     ),
-                    onPressed: _toggleMode,
-                    child: Text(switchText),
+                    onPressed:
+                        _toggleMode, // Gọi hàm Navigator.push đã sửa ở trên
+                    child: const Text(switchText),
                   ),
+
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
