@@ -9,11 +9,11 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController nameCtrl =
-      TextEditingController(text: "Hòa Phan");
+      TextEditingController(text: "username");
   final TextEditingController usernameCtrl =
-      TextEditingController(text: "aoh.fen");
+      TextEditingController(text: "Your Name");
   final TextEditingController bioCtrl =
-      TextEditingController(text: "Come quiet, stay curious.");
+      TextEditingController(text: "Bio của bạn ở đây");
 
   @override
   Widget build(BuildContext context) {
