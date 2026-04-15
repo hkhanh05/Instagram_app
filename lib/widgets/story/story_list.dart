@@ -7,12 +7,16 @@ class StoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 100,
+      height: 110, // 👈 tăng nhẹ cho giống IG
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: 5,
+        padding: const EdgeInsets.symmetric(horizontal: 8), // 👈 QUAN TRỌNG
+        itemCount: 10,
         itemBuilder: (_, index) {
-          return StoryItem(index: index);
+          return Padding(
+            padding: const EdgeInsets.only(right: 12), // 👈 khoảng cách giữa story
+            child: StoryItem(index: index),
+          );
         },
       ),
     );
