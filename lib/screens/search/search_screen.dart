@@ -6,8 +6,27 @@ class SearchScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      // 1. Chỉnh sửa AppBar để chứa thanh tìm kiếm
       appBar: AppBar(
-        title: const Text("Search"),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.grey[200], // Màu nền xám nhạt
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const TextField(
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm',
+              hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
+              prefixIcon: Icon(Icons.search, color: Colors.grey),
+              border: InputBorder.none, // Xóa đường gạch chân mặc định
+              contentPadding: EdgeInsets.symmetric(vertical: 10), // Căn giữa chữ
+            ),
+          ),
+        ),
       ),
       body: GridView.builder(
         padding: const EdgeInsets.all(2),
