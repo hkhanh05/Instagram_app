@@ -58,6 +58,7 @@ import '../../widgets/story/story_list.dart';
 import '../../widgets/post/post_card.dart';
 import 'notification_screen.dart';
 import '../message/message_screen.dart';
+import "../post/camera_screen.dart";
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
@@ -66,19 +67,22 @@ class FeedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
 
-        // 🔥 ICON TRÁI (GIỐNG IG)
         leading: IconButton(
           icon: const Icon(Icons.add, color: Colors.black, size: 28),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CameraScreen()),
+            );
+          },
         ),
 
-        // 🔥 LOGO GIỮA
+        //  LOGO GIỮA
         title: SizedBox(
           height: 50,
           child: FittedBox(
@@ -89,7 +93,7 @@ class FeedScreen extends StatelessWidget {
           ),
         ),
 
-        // 🔥 ICON PHẢI
+        //  ICON PHẢI
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite_border, color: Colors.black),
@@ -115,20 +119,18 @@ class FeedScreen extends StatelessWidget {
           ),
         ],
       ),
-
       body: Column(
         children: [
-
-          // 🔥 STORY (KHÔNG PADDING)
+          // STORY (KHÔNG PADDING)
           const StoryList(),
 
-          // 🔥 LINE NGĂN CÁCH
+          //  LINE NGĂN CÁCH
           const Divider(height: 1, thickness: 0.3),
 
-          // 🔥 FEED LIST
+          //  FEED LIST
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.zero, // 👈 QUAN TRỌNG
+              padding: EdgeInsets.zero, //
               itemCount: 5,
               itemBuilder: (context, index) {
                 return const PostCard();

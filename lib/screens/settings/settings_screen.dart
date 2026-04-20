@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../profile/edit_profile_screen.dart';
+import "../auth/login_screen.dart";
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -24,40 +25,37 @@ class SettingsScreen extends StatelessWidget {
             child: Text("Tài khoản của bạn",
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ),
-
           buildItem("Trung tâm tài khoản", Icons.person, () {}),
-
           const Divider(),
-
           const Padding(
             padding: EdgeInsets.all(10),
             child: Text("Cách bạn dùng Instagram",
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ),
-
           buildItem("Đã lưu", Icons.bookmark, () {}),
           buildItem("Kho lưu trữ", Icons.archive, () {}),
           buildItem("Hoạt động của bạn", Icons.history, () {}),
           buildItem("Thông báo", Icons.notifications, () {}),
           buildItem("Quản lý thời gian", Icons.access_time, () {}),
-
           const Divider(),
-
           buildItem("Chỉnh sửa trang cá nhân", Icons.edit, () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const EditProfileScreen()),
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
             );
           }),
-
           const Divider(),
-
           ListTile(
-            title: const Text("Đăng xuất",
-                style: TextStyle(color: Colors.red)),
-            onTap: () {},
-          )
+            title: const Text("Đăng xuất", style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LoginScreen(),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
