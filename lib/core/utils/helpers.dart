@@ -1,5 +1,4 @@
-// Format, validate,...import 'package:sqflite/sqflite.dart';
-// // Nên thêm thư viện này để xử lý đường dẫn chuyên nghiệp hơn
+// helpers/helpers.dart
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -17,30 +16,36 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    // Sử dụng join từ thư viện path để tạo đường dẫn an toàn hơn
     final databasesPath = await getDatabasesPath();
     final String path = join(databasesPath, 'tasks.db');
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3, // Nâng version lên 3 để cập nhật cấu trúc bảng đầy đủ
       onCreate: (db, version) async {
-        // 3. Tạo bảng users
         await db.execute('''
           CREATE TABLE users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE,
-            password TEXT
+            password TEXT,
+            name TEXT,
+            username TEXT,
+            birthday TEXT
           );
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
+        if (oldVersion < 3) {
+          // Xóa bảng cũ tạo lại hoặc alter table để thêm cột
+          await db.execute('DROP TABLE IF EXISTS users');
           await db.execute('''
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               email TEXT UNIQUE,
-              password TEXT
+              password TEXT,
+              name TEXT,
+              username TEXT,
+              birthday TEXT
             );
           ''');
         }

@@ -35,7 +35,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final LoginController _loginController = LoginController();
 
-  // CHỈ GIỮ LẠI MỘT HÀM validateForm DUY NHẤT VÀ LÀ ASYNC
   void _handleSignUp() async {
     setState(() {
       emailError = emailController.text.trim().isEmpty;
@@ -44,31 +43,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
       usernameError = usernameController.text.trim().isEmpty;
     });
 
+    // Kiểm tra thêm việc chọn ngày tháng năm sinh
+    if (selectedMonth == null || selectedDay == null || selectedYear == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Vui lòng chọn đầy đủ ngày sinh!"),
+            backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     if (!emailError && !passwordError && !nameError && !usernameError) {
+      // Ghép ngày tháng năm lại thành chuỗi chuỗi dạng: "DD/MM/YYYY"
+      String birthdayStr = "$selectedDay/$selectedMonth/$selectedYear";
+
+      // Khởi tạo Object User đầy đủ thuộc tính để truyền sang Controller
       User newUser = User(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
-        // Thêm name/username nếu Model Users của bạn có hỗ trợ
+        name: nameController.text.trim(),
+        username: usernameController.text.trim(),
+        birthday: birthdayStr,
       );
 
       bool success = await _loginController.register(newUser);
 
       if (mounted) {
-        // Kiểm tra xem widget còn tồn tại không trước khi dùng context
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Đăng ký thành công!"),
-              backgroundColor: Colors.green,
-            ),
+                content: Text("Đăng ký thành công!"),
+                backgroundColor: Colors.green),
           );
-          Navigator.pop(context);
+          Navigator.pop(context); // Quay lại trang Login
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Email đã tồn tại hoặc lỗi hệ thống!"),
-              backgroundColor: Colors.red,
-            ),
+                content: Text("Đăng ký thất bại trên hệ thống Firebase!"),
+                backgroundColor: Colors.red),
           );
         }
       }
