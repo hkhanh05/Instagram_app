@@ -10,6 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  sqflite: ^2.3.0
+  path: ^1.9.0
+  
   audioplayers: ^5.2.1
 
   # ICON IOS
@@ -47,6 +51,7 @@ dev_dependencies:
   permission_handler: ^11.3.1
   cached_network_image: ^3.3.1
   camera: ^0.11.0+2
+ 
  
 
 flutter:
