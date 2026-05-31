@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import "../../controllers/login_controller.dart";
 import "../../models/user_model.dart"; // Đảm bảo đường dẫn này đúng
+import "../main/main_screen.dart";
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -75,12 +77,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 content: Text("Đăng ký thành công!"),
                 backgroundColor: Colors.green),
           );
-          Navigator.pop(context); // Quay lại trang Login
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Đăng ký thất bại trên hệ thống Firebase!"),
-                backgroundColor: Colors.red),
+
+          // Lấy UID của tài khoản Firebase hiq
+          //q
+          //ện tại vừa đăng ký xong
+          final String? currentFirebaseUid =
+              fb_auth.FirebaseAuth.instance.currentUser?.uid;
+
+          // Điều hướng và truyền UID sang MainScreen
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainScreen(firebaseUid: currentFirebaseUid),
+            ),
+            (route) => false,
           );
         }
       }

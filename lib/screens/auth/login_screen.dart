@@ -60,9 +60,13 @@ class _LoginScreenState extends State<LoginScreen> {
     _showMessage('Đăng nhập thành công.');
 
     if (mounted) {
+      // 🔥 ĐÃ SỬA: Xóa bỏ chữ 'const' lỗi thời.
+      // Truyền thêm UID của User từ đối tượng vừa đăng nhập thành công sang MainScreen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainScreen()),
+        MaterialPageRoute(
+          builder: (_) => MainScreen(firebaseUid: user.id?.toString()),
+        ),
       );
     }
   }

@@ -19,7 +19,6 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => LoginScreen()));
     });
-    super.initState();
   }
 
   Widget build(BuildContext context) {
