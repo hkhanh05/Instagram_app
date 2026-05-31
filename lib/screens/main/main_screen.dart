@@ -1,7 +1,6 @@
-// Chứa bottom bar (Home, Search,...)
 import 'package:flutter/material.dart';
 
-// IMPORT SCREENS (đảm bảo đúng path theo project của bạn)
+// IMPORT SCREENS (Đảm bảo đúng path của project bạn nhé)
 import '../feed/feed_screen.dart';
 import '../search/search_screen.dart';
 import '../post/create_post_screen.dart';
@@ -9,7 +8,10 @@ import '../message/message_screen.dart';
 import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final String? firebaseUid;
+
+  // Sửa chính xác hàm khởi tạo nhận biến dynamic
+  MainScreen({super.key, this.firebaseUid});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -18,21 +20,30 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Danh sách các màn hình
-  final List<Widget> _screens = [
-    const FeedScreen(),
-    const SearchScreen(),
-    const CreatePostScreen(),
-    const MessageScreen(),
-    const ProfileScreen(),
-  ];
+  // Khai báo danh sách các màn hình
+  late List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo các màn hình một lần duy nhất tại đây khi khởi chạy widget
+    _screens = [
+      const FeedScreen(),
+      const SearchScreen(),
+      const CreatePostScreen(),
+      const MessageScreen(),
+      // Truyền an toàn Firebase UID vào ProfileScreen
+      ProfileScreen(firebaseUid: widget.firebaseUid),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children:
+            _screens, // Truyền trực tiếp danh sách biến tĩnh tĩnh đã lưu trong bộ nhớ
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -74,39 +85,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-
-/*
-================= GIẢI THÍCH =================
-
-1. IndexedStack:
-- Giữ trạng thái các màn hình (giống Instagram thật)
-- Không bị reload lại khi chuyển tab
-
-2. _screens:
-- Danh sách các trang chính của app
-- Mỗi tab tương ứng 1 screen
-
-3. BottomNavigationBar:
-- Thanh điều hướng dưới cùng
-- Đã tắt label để giống Instagram
-
-4. IMPORT:
-- Bạn phải tạo sẵn các file:
-  + feed_screen.dart
-  + search_screen.dart
-  + create_post_screen.dart
-  + message_screen.dart
-  + profile_screen.dart
-
-5. LƯU Ý:
-- Nếu lỗi import → kiểm tra lại path
-- Nếu chưa có screen → tạo file rỗng trước
-
-================================================
-
-TIP NÂNG CAO (làm sau):
-- Thay icon bằng icon giống Instagram (SVG)
-- Thêm animation khi chuyển tab
-- Thêm badge (ví dụ: tin nhắn chưa đọc)
-================================================
-*/
