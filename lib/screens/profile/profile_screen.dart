@@ -9,7 +9,6 @@ import '../../services/fake_data_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int currentUserId;
-  // 🔥 ĐÃ SỬA: Thêm biến nhận Firebase UID từ MainScreen chuyển xuống
   final String? firebaseUid;
 
   const ProfileScreen({super.key, this.currentUserId = 1, this.firebaseUid});
@@ -33,10 +32,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfileData(); // Đổi tên hàm cho đúng bản chất
+    _loadProfileData();
   }
 
-  // 🔥 ĐÃ SỬA: Hàm tải dữ liệu kết hợp linh hoạt Firebase và SQLite
+  // 🔥 ĐÃ SỬA TRIỆT ĐỂ: Chỉ giữ lại 1 hàm duy nhất, ưu tiên dữ liệu từ Firebase trước
   Future<void> _loadProfileData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -44,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       Map<String, dynamic>? userMap;
 
-      // 1. KIỂM TRA: Nếu có dữ liệu từ Firebase Auth truyền qua
+      // 1. Kiểm tra nếu có Firebase UID từ Auth truyền sang
       if (widget.firebaseUid != null && widget.firebaseUid!.isNotEmpty) {
         final doc = await FirebaseFirestore.instance
             .collection('users')
@@ -53,15 +52,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (doc.exists) {
           userMap = doc.data();
-          // Đồng bộ một số trường dữ liệu cho khớp với UI cũ của bạn
+          // Đồng bộ các key động từ Firebase về khớp với UI cũ của bạn
           userMap?['username'] = userMap['username'] ?? 'instagram_user';
-          userMap?['fullName'] = userMap['name'] ?? 'Thành viên mới';
+          userMap?['fullName'] =
+              userMap['name'] ?? userMap['fullName'] ?? 'Thành viên mới';
           userMap?['bio'] =
               userMap['bio'] ?? 'Chào mừng đến với Instagram clone! 🚀';
+          userMap?['followersCount'] = userMap['followersCount'] ?? 0;
+          userMap?['followingCount'] = userMap['followingCount'] ?? 0;
+          userMap?['avatarUrl'] = userMap['avatarUrl'] ?? '';
         }
       }
 
-      // 2. BACKUP LUỒNG CŨ: Nếu không chạy Firebase (hoặc lỗi), quay về đọc SQLite cũ
+      // 2. BACKUP: Nếu không có UID hoặc không tìm thấy user trên mạng, quay về đọc SQLite cũ (Hồng Hoa)
       if (userMap == null) {
         userMap =
             await DatabaseHelper.instance.getUserById(widget.currentUserId);
@@ -91,37 +94,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Backwards-compatible wrapper: nhiều chỗ trong code cũ gọi `_loadSqliteData()`
-  // nên giữ một wrapper để tránh lỗi tên không tìm thấy.
+  // Cầu nối đồng bộ để lệnh Kéo để Refresh (onRefresh) không bị lỗi biên dịch
   Future<void> _loadSqliteData() async => await _loadProfileData();
-
-  // Giữ nguyên các hàm bổ trợ khác ở phía bên dưới như _showMusicMenu, _buildGrid()...
-  // Chỉ cần tìm chỗ nào gọi `_loadSqliteData()` thì đổi tên thành `_loadProfileData()` là được!
-  void _confirmDeleteHighlight(int highlightId, String title) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Xóa tin nổi bật?"),
-        content: Text(
-            "Bạn có chắc chắn muốn xóa '$title' khỏi trang cá nhân không?"),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Hủy", style: TextStyle(color: Colors.black))),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await DatabaseHelper.instance.deleteHighlight(highlightId);
-              _loadSqliteData();
-            },
-            child: const Text("Xóa",
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   void dispose() {
@@ -281,10 +255,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.grey[200],
-                                backgroundImage: _userData?['avatarUrl'] != null
-                                    ? NetworkImage(_userData!['avatarUrl'])
-                                    : null,
-                                child: _userData?['avatarUrl'] == null
+                                backgroundImage:
+                                    _userData?['avatarUrl'] != null &&
+                                            _userData!['avatarUrl']
+                                                .toString()
+                                                .isNotEmpty
+                                        ? NetworkImage(_userData!['avatarUrl'])
+                                        : null,
+                                child: _userData?['avatarUrl'] == null ||
+                                        _userData!['avatarUrl']
+                                            .toString()
+                                            .isEmpty
                                     ? const Icon(Icons.person,
                                         color: Colors.grey)
                                     : null,
@@ -335,6 +316,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _confirmDeleteHighlight(int highlightId, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xóa tin nổi bật?"),
+        content: Text(
+            "Bạn có chắc chắn muốn xóa '$title' khỏi trang cá nhân không?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy", style: TextStyle(color: Colors.black))),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await DatabaseHelper.instance.deleteHighlight(highlightId);
+              _loadSqliteData();
+            },
+            child: const Text("Xóa",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading)
@@ -368,12 +375,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAppBarTitle() {
+    // 🔥 ĐÃ SỬA: Đọc chuẩn dữ liệu từ map Firebase/SQLite tránh lỗi trống tiêu đề
+    String titleText = _userData?['username']?.toString() ?? 'instagram_user';
+    if (titleText.isEmpty) titleText = 'instagram_user';
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(Icons.lock_outline, size: 18, color: Colors.black),
         const SizedBox(width: 8),
-        Text(_userData?['username'] ?? '',
+        Text(titleText,
             style: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
@@ -404,6 +415,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int followers = _userData?['followersCount'] ?? 0;
     int following = _userData?['followingCount'] ?? 0;
     String avatar = _userData?['avatarUrl'] ?? '';
+
+    // 🔥 ĐÃ SỬA: Ép giá trị hiển thị Tên đầy đủ từ Firebase
+    String displayName = _userData?['fullName']?.toString() ?? 'Thành viên mới';
+    if (displayName.isEmpty) displayName = 'Thành viên mới';
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -443,9 +458,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(_userData?['fullName'] ?? '',
+          Text(displayName,
               style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(_userData?['bio'] ?? ''),
+          Text(_userData?['bio'] ?? 'Chào mừng đến với Instagram clone! 🚀'),
           const SizedBox(height: 8),
           if (currentUrl.isNotEmpty)
             GestureDetector(
@@ -482,7 +497,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         MaterialPageRoute(
             builder: (_) => InstagramFollowScreen(
                   initialIndex: index,
-                  username: _userData?['username'] ?? '',
+                  username: _userData?['username'] ?? 'instagram_user',
                   followersCount: followers,
                   followingCount: following,
                 )));
@@ -623,7 +638,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final post = _userPosts[index];
         String url = post['imageUrl'] ?? '';
         return GestureDetector(
-          // 🔥 ĐÃ CHỈNH SỬA CHUẨN: Đưa Navigator mở PostDetailScreen vào đúng vị trí sự kiện click của ô lưới ảnh
           onTap: () {
             Navigator.push(
               context,
@@ -631,10 +645,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 builder: (context) => PostDetailScreen(
                   allPosts: _userPosts,
                   initialIndex: index,
-                  username: _userData?['username'] ?? '',
+                  username: _userData?['username'] ?? 'instagram_user',
                   avatarUrl: _userData?['avatarUrl'] ?? '',
-                  onPostDeleted:
-                      _loadSqliteData, // Khi xóa bài viết bên trong, tự động load lại danh sách trang chính
+                  onPostDeleted: _loadSqliteData,
                 ),
               ),
             );
@@ -714,12 +727,6 @@ class InstagramFollowScreen extends StatelessWidget {
   }
 }
 
-// =========================================================================
-// MÀN HÌNH CHI TIẾT BÀI VIẾT (Đã bọc logic mở BottomSheet tùy chọn Xóa khi bấm 3 chấm)
-// =========================================================================
-// =========================================================================
-// MÀN HÌNH CHI TIẾT BÀI VIẾT (ĐÃ SỬA TRIỆT ĐỂ LỖI LATE INITIALIZATION)
-// =========================================================================
 class PostDetailScreen extends StatefulWidget {
   final List<Map<String, dynamic>> allPosts;
   final int initialIndex;
@@ -741,7 +748,6 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  // 🔥 ĐÃ SỬA: Loại bỏ từ khóa 'late' nguy hiểm, khởi tạo trực tiếp danh sách rỗng để chống crash tuyệt đối
   List<Map<String, dynamic>> _currentPosts = [];
   Map<int, int> _likesMap = {};
   Map<int, List<Map<String, dynamic>>> _commentsMap = {};
@@ -750,7 +756,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Khởi tạo bản sao dữ liệu bài viết ngay khi màn hình vừa được nạp
     _currentPosts = List.from(widget.allPosts);
     _initData();
   }
