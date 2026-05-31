@@ -1,10 +1,7 @@
-// UI login
-
+// screens/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import '../../controllers/Login_controller.dart';
 import "../auth/register_screen.dart";
-
-import "../../models/user_model.dart";
 import '../main/main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final LoginController _loginController = LoginController();
   bool _obscureText = true;
-  bool _isRegisterMode = false;
+  bool _isLoading = false; // Thêm biến trạng thái loading
 
   @override
   void dispose() {
@@ -30,50 +27,47 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showMessage(String message, {Color backgroundColor = Colors.green}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: backgroundColor),
     );
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (_isRegisterMode) {
-      final created = await _loginController.register(
-        User(email: email, password: password),
+    final user = await _loginController.login(email, password);
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (user == null) {
+      _showMessage(
+        'Email hoặc mật khẩu không đúng.',
+        backgroundColor: Colors.red,
       );
-      if (!created) {
-        _showMessage('Email đã tồn tại.', backgroundColor: Colors.red);
-        return;
-      }
-      _showMessage('Đăng ký thành công. Vui lòng đăng nhập.');
-      setState(() {
-        _isRegisterMode = false;
-      });
-      _passwordController.clear();
-    } else {
-      final user = await _loginController.login(email, password);
-      if (user == null) {
-        _showMessage(
-          'Email hoặc mật khẩu không đúng.',
-          backgroundColor: Colors.red,
-        );
-        return;
-      }
-      _showMessage('Đăng nhập thành công.');
+      return;
+    }
+
+    _showMessage('Đăng nhập thành công.');
+
+    if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => MainScreen()),
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     }
   }
 
-  void _toggleMode() {
+  void _navigateToRegister() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RegisterScreen()),
@@ -82,11 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Logic bây giờ chỉ tập trung vào Login
-    const titleText = 'Welcome back';
-    const actionText = 'Log in';
-    const switchText = 'Don\'t have an account? Register';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Login'),
@@ -105,15 +94,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   Image.network(
                     'https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png',
                     height: 80,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.image, size: 80),
                   ),
                   const SizedBox(height: 30),
                   const Text(
-                    titleText,
+                    'Welcome back',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 24),
 
@@ -133,6 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (value) {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) return 'Vui lòng nhập email';
+                      if (!text.contains('@')) return 'Email không hợp lệ';
                       return null;
                     },
                   ),
@@ -166,24 +155,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Nút Đăng nhập
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30)),
-                    ),
-                    onPressed: _submit, // Hàm này sẽ gọi _loginController.login
-                    child: const Text(actionText),
-                  ),
+                  // Nút Đăng nhập / Loading
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30)),
+                          ),
+                          onPressed: _submit,
+                          child: const Text('Log in'),
+                        ),
 
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () {}, // Quên mật khẩu
+                    onPressed: () {},
                     child: const Text('Forgot password?'),
                   ),
 
                   const SizedBox(height: 16),
+
                   // Nút Chuyển sang trang Đăng ký
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
@@ -191,9 +183,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30)),
                     ),
-                    onPressed:
-                        _toggleMode, // Gọi hàm Navigator.push đã sửa ở trên
-                    child: const Text(switchText),
+                    onPressed: _navigateToRegister,
+                    child: const Text("Don't have an account? Register"),
                   ),
 
                   const SizedBox(height: 24),

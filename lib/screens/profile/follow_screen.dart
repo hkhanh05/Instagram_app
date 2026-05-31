@@ -1,14 +1,27 @@
-// Following
 import 'package:flutter/material.dart';
+import '../../controllers/profile_controller.dart';
+import '../../models/profile_model.dart';
+import '../../services/fake_data_service.dart';
 
 class InstagramFollowScreen extends StatelessWidget {
-  const InstagramFollowScreen({super.key});
+  final int initialIndex;
+  final String username; 
+  final List<Map<String, dynamic>> followersList; // 🔥 Thay thế cho followersCount tĩnh
+  final List<Map<String, dynamic>> followingList; // 🔥 Thay thế cho followingCount tĩnh
+
+  const InstagramFollowScreen({
+    super.key,
+    this.initialIndex = 0,
+    required this.username,
+    required this.followersList,
+    required this.followingList,
+  });
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // 2 Tab: Người theo dõi & Đang theo dõi
-      initialIndex: 1, // Mặc định mở tab "Đang theo dõi" giống hình 1
+      length: 2,
+      initialIndex: initialIndex,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -17,35 +30,35 @@ class InstagramFollowScreen extends StatelessWidget {
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {},
+            onPressed: () => Navigator.pop(context),
           ),
           title: Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.lock_outline, size: 18, color: Colors.black),
-              SizedBox(width: 8),
+            children: [
+              const Icon(Icons.lock_outline, size: 18, color: Colors.black),
+              const SizedBox(width: 8),
               Text(
-                'username',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+                username, 
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              Icon(Icons.keyboard_arrow_down, color: Colors.black),
+              const Icon(Icons.keyboard_arrow_down, color: Colors.black),
             ],
           ),
-          bottom: const TabBar(
+          bottom: TabBar(
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.black,
             indicatorWeight: 1.5,
             tabs: [
-              Tab(text: "66 Người theo dõi"),
-              Tab(text: "116 Đang theo dõi"),
+              Tab(text: "${followersList.length} Người theo dõi"),
+              Tab(text: "${followingList.length} Đang theo dõi"), 
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            FollowerTabContent(), // Nội dung tab Người theo dõi
-            FollowingTabContent(), // Nội dung tab Đang theo dõi
+            FollowerTabContent(users: followersList, username: username),
+            FollowingTabContent(users: followingList),
           ],
         ),
       ),
@@ -53,53 +66,126 @@ class InstagramFollowScreen extends StatelessWidget {
   }
 }
 
-// --- TAB NGƯỜI THEO DÕI ---
-class FollowerTabContent extends StatelessWidget {
-  const FollowerTabContent({super.key});
+// =========================================================================
+// FOLLOWER TAB - KHÔNG CÒN DỮ LIỆU TĨNH
+// =========================================================================
+class FollowerTabContent extends StatefulWidget {
+  final List<Map<String, dynamic>> users;
+  final String username;
+
+  const FollowerTabContent({super.key, required this.users, required this.username});
+
+  @override
+  State<FollowerTabContent> createState() => _FollowerTabContentState();
+}
+
+class _FollowerTabContentState extends State<FollowerTabContent> {
+  // Quản lý trạng thái theo dõi dựa trên ID duy nhất của User trong DB
+  final Map<int, bool> _followStatusMap = {};
 
   @override
   Widget build(BuildContext context) {
+    if (widget.users.isEmpty) {
+      return const Center(
+        child: Text("Không có người theo dõi nào", style: TextStyle(color: Colors.grey)),
+      );
+    }
+
     return ListView(
       children: [
         _buildSearchBar(),
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 10, bottom: 10),
-          child: Text("Hạng mục", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          child: Text(
+            "Hạng mục",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
         ),
-        _buildCategoryItem("Người theo dõi mà bạn không theo dõi lại", "tiem_cua_doris và 27 người khác", Icons.group_remove_outlined),
-        _buildCategoryItem("Ít tương tác nhất", "_dimha_ và 8 người khác", Icons.unfold_less),
+        _buildCategoryItem(
+          "Người theo dõi mà bạn không theo dõi lại",
+          "Các tài khoản chưa tương tác chéo với ${widget.username}", 
+          Icons.group_remove_outlined,
+        ),
+        _buildCategoryItem(
+          "Ít tương tác nhất",
+          "Danh sách tài khoản có tần suất tương tác thấp",
+          Icons.unfold_less,
+        ),
         const Divider(),
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 10, bottom: 10),
-          child: Text("Tất cả người theo dõi", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          child: Text(
+            "Tất cả người theo dõi",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
         ),
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 10,
-          itemBuilder: (context, index) => _buildUserTile(index, isFollowerTab: true),
+          itemCount: widget.users.length, 
+          itemBuilder: (context, index) {
+            final user = widget.users[index];
+            int userId = user['id'] ?? index;
+            
+            // Đọc trạng thái follow thực tế từ trường dữ liệu của DB (ví dụ: isFollowing)
+            bool isFollowingBack = _followStatusMap[userId] ?? (user['isFollowing'] == 1);
+
+            return _buildUserTile(
+              userData: user,
+              isFollowerTab: true,
+              isButtonActive: isFollowingBack,
+              onButtonPressed: () {
+                setState(() {
+                  _followStatusMap[userId] = !isFollowingBack;
+                });
+                // To-Do: Bạn có thể gọi thêm Controller để cập nhật trạng thái xuống SQLite tại đây
+              },
+            );
+          },
         ),
       ],
     );
   }
 }
 
-// --- TAB ĐANG THEO DÕI ---
-class FollowingTabContent extends StatelessWidget {
-  const FollowingTabContent({super.key});
+// =========================================================================
+// FOLLOWING TAB - ĐÃ SẠCH DỮ LIỆU TĨNH
+// =========================================================================
+class FollowingTabContent extends StatefulWidget {
+  final List<Map<String, dynamic>> users;
+  const FollowingTabContent({super.key, required this.users});
+
+  @override
+  State<FollowingTabContent> createState() => _FollowingTabContentState();
+}
+
+class _FollowingTabContentState extends State<FollowingTabContent> {
+  final Map<int, bool> _unfollowStatusMap = {};
 
   @override
   Widget build(BuildContext context) {
+    if (widget.users.isEmpty) {
+      return const Center(
+        child: Text("Bạn chưa theo dõi ai", style: TextStyle(color: Colors.grey)),
+      );
+    }
+
     return ListView(
       children: [
         _buildSearchBar(),
         ListTile(
           leading: Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey.shade300),
+            ),
             child: const Icon(Icons.contact_page_outlined, color: Colors.black),
           ),
-          title: const Text("Kết nối người liên hệ", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            "Kết nối người liên hệ",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           subtitle: const Text("Tìm những người mà bạn biết"),
           trailing: ElevatedButton(
             onPressed: () {},
@@ -109,27 +195,51 @@ class FollowingTabContent extends StatelessWidget {
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          child: Text("Sắp xếp theo Mặc định", style: TextStyle(fontWeight: FontWeight.bold)),
+          child: Text(
+            "Sắp xếp theo Mặc định",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 15,
-          itemBuilder: (context, index) => _buildUserTile(index, isFollowerTab: false),
+          itemCount: widget.users.length, 
+          itemBuilder: (context, index) {
+            final user = widget.users[index];
+            int userId = user['id'] ?? index;
+            
+            bool isUnfollowed = _unfollowStatusMap[userId] ?? false;
+
+            return _buildUserTile(
+              userData: user,
+              isFollowerTab: false,
+              isButtonActive: isUnfollowed, 
+              onButtonPressed: () {
+                setState(() {
+                  _unfollowStatusMap[userId] = !isUnfollowed;
+                });
+              },
+            );
+          },
         ),
       ],
     );
   }
 }
 
-// --- CÁC WIDGET DÙNG CHUNG ---
+// =========================================================================
+// WIDGET THÀNH PHẦN HOÀN TOÀN ĐỘNG
+// =========================================================================
 
 Widget _buildSearchBar() {
   return Padding(
-    padding: const EdgeInsets.all(16.0),
+    padding: const EdgeInsets.all(16),
     child: Container(
       height: 38,
-      decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: const TextField(
         decoration: InputDecoration(
           hintText: "Tìm kiếm",
@@ -148,7 +258,10 @@ Widget _buildCategoryItem(String title, String sub, IconData icon) {
       backgroundColor: Colors.white,
       child: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade300),
+        ),
         child: Icon(icon, color: Colors.black, size: 20),
       ),
     ),
@@ -157,31 +270,67 @@ Widget _buildCategoryItem(String title, String sub, IconData icon) {
   );
 }
 
-Widget _buildUserTile(int index, {required bool isFollowerTab}) {
+// USER TILE ĐỘNG ĐÃ KHỬ TOÀN BỘ CHUỖI VÀ ẢNH MẶC ĐỊNH TĨNH
+Widget _buildUserTile({
+  required Map<String, dynamic> userData,
+  required bool isFollowerTab,
+  required bool isButtonActive,
+  required VoidCallback onButtonPressed,
+}) {
+  String buttonText = "";
+  if (isFollowerTab) {
+    buttonText = isButtonActive ? "Theo dõi lại" : "Nhắn tin";
+  } else {
+    buttonText = isButtonActive ? "Theo dõi" : "Nhắn tin";
+  }
+
+  String avatarUrl = userData['avatarUrl'] ?? '';
+  String username = userData['username'] ?? '';
+  String fullName = userData['fullName'] ?? '';
+
   return ListTile(
-    leading: const CircleAvatar(radius: 26, backgroundColor: Colors.grey),
-    title: Text("user_insta_$index", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-    subtitle: Text("Tên người dùng $index", style: const TextStyle(color: Colors.grey)),
+    leading: CircleAvatar(
+      radius: 26,
+      backgroundColor: Colors.grey[200],
+      backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+      child: avatarUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+    ),
+    title: Text(
+      username,
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+    ),
+    subtitle: Text(
+      fullName,
+      style: const TextStyle(color: Colors.grey, fontSize: 13),
+    ),
     trailing: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
           height: 30,
           child: OutlinedButton(
-            onPressed: () {},
+            onPressed: onButtonPressed, 
             style: OutlinedButton.styleFrom(
-              backgroundColor: (isFollowerTab && index % 3 == 0) ? Colors.blue : Colors.grey[100],
-              side: BorderSide(color: Colors.grey.shade300),
+              backgroundColor: isButtonActive ? Colors.blue : Colors.grey[100],
+              side: BorderSide(color: isButtonActive ? Colors.blue : Colors.grey.shade300),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(
-              (isFollowerTab && index % 3 == 0) ? "Theo dõi lại" : "Nhắn tin",
-              style: TextStyle(color: (isFollowerTab && index % 3 == 0) ? Colors.white : Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+              buttonText, 
+              style: TextStyle(
+                color: isButtonActive ? Colors.white : Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
         const SizedBox(width: 8),
-        Icon(isFollowerTab ? Icons.close : Icons.more_vert, color: Colors.grey, size: 20),
+        Icon(
+          isFollowerTab ? Icons.close : Icons.more_vert,
+          color: Colors.grey,
+          size: 20,
+        ),
       ],
     ),
   );
