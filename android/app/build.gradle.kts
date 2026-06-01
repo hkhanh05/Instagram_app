@@ -22,6 +22,10 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    lint {
+        disable.addAll(listOf("InvalidPackage", "MissingTranslation"))
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.instagram"

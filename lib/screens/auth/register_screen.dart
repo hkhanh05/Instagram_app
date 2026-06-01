@@ -27,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool passwordError = false;
   bool nameError = false;
   bool usernameError = false;
+  bool isLoading = false;
 
   String? selectedMonth;
   String? selectedDay;
@@ -56,6 +57,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (!emailError && !passwordError && !nameError && !usernameError) {
+      // Hiển thị Loading Dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("Đang đăng ký..."),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
       String birthdayStr = "$selectedDay/$selectedMonth/$selectedYear";
 
       User newUser = User(
@@ -69,6 +91,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       bool success = await _loginController.register(newUser);
 
       if (mounted) {
+        // Đóng loading dialog
+        Navigator.pop(context);
+
         if (success) {
           final String? currentFirebaseUid =
               fb_auth.FirebaseAuth.instance.currentUser?.uid;
@@ -96,22 +121,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
               print("🚀 Đã khởi tạo hồ sơ người dùng mới lên Firestore!");
             } catch (e) {
               print("❌ Lỗi khởi tạo Firestore: $e");
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text("Lỗi: ${e.toString()}"),
+                      backgroundColor: Colors.red),
+                );
+              }
+              return;
             }
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Đăng ký thành công!"),
-                backgroundColor: Colors.green),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Đăng ký thành công!"),
+                  backgroundColor: Colors.green),
+            );
 
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainScreen(firebaseUid: currentFirebaseUid),
-            ),
-            (route) => false,
-          );
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainScreen(firebaseUid: currentFirebaseUid),
+              ),
+              (route) => false,
+            );
+          }
+        } else {
+          // Hiển thị lỗi đăng ký
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Đăng ký thất bại! Vui lòng thử lại."),
+                  backgroundColor: Colors.red),
+            );
+          }
         }
       }
     }
@@ -207,16 +251,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _handleSignUp,
+                        onPressed: isLoading ? null : _handleSignUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text(
-                          "Sign up",
-                          style: TextStyle(color: Colors.white),
+                        child: Text(
+                          isLoading ? "Đang xử lý..." : "Sign up",
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
                     ),

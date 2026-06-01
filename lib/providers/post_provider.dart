@@ -5,7 +5,7 @@ import '../models/post_model.dart';
 import '../services/fake_data_service.dart';
 
 class PostProvider extends ChangeNotifier {
-  final DatabaseHelper db = DatabaseHelper.instance;
+  final FakeDataHelper db = FakeDataHelper.instance;
 
   List<PostModel> posts = [];
 

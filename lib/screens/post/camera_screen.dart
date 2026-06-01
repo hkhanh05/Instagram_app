@@ -321,15 +321,19 @@ class _CameraScreenState extends State<CameraScreen>
 
       if (!mounted) return;
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const CreatePostScreen(),
-          settings: RouteSettings(
-            arguments: image.path,
-          ),
-        ),
-      );
+      final result = await Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => const CreatePostScreen(),
+    settings: RouteSettings(
+      arguments: image.path,
+    ),
+  ),
+);
+
+if (result == true && mounted) {
+  Navigator.pop(context, true);
+}
     } catch (e) {
       debugPrint("Capture Error: $e");
     }
@@ -350,15 +354,19 @@ class _CameraScreenState extends State<CameraScreen>
 
       if (!mounted) return;
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const CreatePostScreen(),
-          settings: RouteSettings(
-            arguments: image.path,
-          ),
-        ),
-      );
+      final result = await Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => const CreatePostScreen(),
+    settings: RouteSettings(
+      arguments: image.path,
+    ),
+  ),
+);
+
+if (result == true && mounted) {
+  Navigator.pop(context, true);
+}
     } catch (e) {
       debugPrint("Gallery Error: $e");
     }
