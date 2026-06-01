@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Đã thêm thư viện này
 
 class EditProfileScreen extends StatefulWidget {
   final int currentUserId;
@@ -21,6 +24,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String? selectedGender;
   String currentAvatarUrl = "";
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -28,6 +33,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     loadProfile();
+  }
+
+  Future<void> pickAvatar() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (image == null) return;
+
+    setState(() {
+      _selectedImage = File(image.path);
+      // Không gán đè đường dẫn local vào currentAvatarUrl ở đây nữa để tránh lỗi render
+    });
   }
 
   Future<void> loadProfile() async {
@@ -50,12 +68,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (doc.exists) {
         final data = doc.data()!;
-
         final gender = data['gender']?.toString();
 
         setState(() {
-          nameCtrl.text =
-              data['fullName']?.toString() ?? data['name']?.toString() ?? '';
+          nameCtrl.text = data['fullName']?.toString() ?? data['name']?.toString() ?? '';
           usernameCtrl.text = data['username']?.toString() ?? '';
           bioCtrl.text = data['bio']?.toString() ?? '';
           selectedGender = (gender == 'Nam' || gender == 'Nữ') ? gender : null;
@@ -93,6 +109,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
+      String finalAvatarUrl = currentAvatarUrl;
+
+      // XỬ LÝ UPLOAD ẢNH LÊN FIREBASE STORAGE (NẾU CÓ CHỌN ẢNH MỚI)
+      if (_selectedImage != null) {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('avatars')
+            .child('${user.uid}.jpg');
+        
+        // Upload file
+        await storageRef.putFile(_selectedImage!);
+        // Lấy URL tải về sau khi upload thành công
+        finalAvatarUrl = await storageRef.getDownloadURL();
+      }
+
+      // LƯU THÔNG TIN VÀO FIRESTORE
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'email': user.email ?? '',
@@ -101,18 +133,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'username': usernameCtrl.text.trim(),
         'bio': bioCtrl.text.trim(),
         'gender': selectedGender ?? '',
-        'avatarUrl': currentAvatarUrl,
-        'followersCount': 0,
-        'followingCount': 0,
+        'avatarUrl': finalAvatarUrl, // Đường dẫn URL internet chuẩn
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Đã cập nhật thông tin cá nhân thành công!"),
-        ),
+        const SnackBar(content: Text("Đã cập nhật thông tin cá nhân thành công!")),
       );
 
       Navigator.pop(context, true);
@@ -149,6 +177,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
     }
 
+    // Xác định nguồn ảnh hiển thị dựa trên trạng thái hiện tại
+    ImageProvider? avatarImage;
+    if (_selectedImage != null) {
+      avatarImage = FileImage(_selectedImage!); // Ưu tiên hiển thị ảnh vừa chọn từ máy
+    } else if (currentAvatarUrl.isNotEmpty && currentAvatarUrl.startsWith('http')) {
+      avatarImage = NetworkImage(currentAvatarUrl); // Nếu không chọn ảnh mới, dùng ảnh cũ từ mạng
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -166,23 +202,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           Center(
             child: CircleAvatar(
               radius: 40,
-              backgroundColor: Colors.grey,
-              backgroundImage:
-                  currentAvatarUrl.isNotEmpty ? NetworkImage(currentAvatarUrl) : null,
-              child: currentAvatarUrl.isEmpty
-                  ? const Icon(Icons.person, size: 40, color: Colors.white)
+              backgroundColor: Colors.grey[300],
+              backgroundImage: avatarImage,
+              child: avatarImage == null
+                  ? const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: Colors.white,
+                    )
                   : null,
             ),
           ),
-
+          
           TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Chức năng đổi avatar sẽ làm sau"),
-                ),
-              );
-            },
+            onPressed: pickAvatar,
             child: const Text(
               "Chỉnh sửa ảnh hoặc avatar",
               style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
