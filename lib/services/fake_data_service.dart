@@ -1,6 +1,6 @@
-// fake_data_helper.dart
-import 'package:sqflite/sqflite.dart';
+// fake_data_service.dart
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
 
 class FakeDataHelper {
   static final FakeDataHelper instance = FakeDataHelper._init();
@@ -83,7 +83,9 @@ class FakeDataHelper {
     return res.isNotEmpty ? res.first : null;
   }
 
-  Future<List<Map<String, dynamic>>> getPostsByUserId(int userId) async {
+  Future<List<Map<String, dynamic>>> getPostsByUserId(
+    int userId,
+  ) async {
     final db = await instance.database;
 
     return await db.query(
@@ -91,6 +93,16 @@ class FakeDataHelper {
       where: 'userId = ?',
       orderBy: 'id DESC',
       whereArgs: [userId],
+    );
+  }
+
+  /// LOAD TẤT CẢ POST CHO FEED
+  Future<List<Map<String, dynamic>>> getAllPosts() async {
+    final db = await instance.database;
+
+    return await db.query(
+      'posts',
+      orderBy: 'id DESC',
     );
   }
 
@@ -124,7 +136,9 @@ class FakeDataHelper {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getCommentsByPostId(int postId) async {
+  Future<List<Map<String, dynamic>>> getCommentsByPostId(
+    int postId,
+  ) async {
     final db = await instance.database;
 
     return await db.query(
@@ -148,7 +162,9 @@ class FakeDataHelper {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getHighlights(int userId) async {
+  Future<List<Map<String, dynamic>>> getHighlights(
+    int userId,
+  ) async {
     final db = await instance.database;
 
     return await db.query(
@@ -182,7 +198,9 @@ class FakeDataHelper {
     );
   }
 
-  Future<int> deleteHighlight(int highlightId) async {
+  Future<int> deleteHighlight(
+    int highlightId,
+  ) async {
     final db = await instance.database;
 
     return await db.delete(
@@ -190,5 +208,32 @@ class FakeDataHelper {
       where: 'id = ?',
       whereArgs: [highlightId],
     );
+  }
+
+  /// LẤY USERNAME THẬT TỪ DATABASE users
+  Future<String> getUsernameByUserId(
+    int userId,
+  ) async {
+    final dbPath = await getDatabasesPath();
+
+    final userDb = await openDatabase(
+      join(dbPath, 'instagram..db'),
+    );
+
+    final result = await userDb.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['username']
+              ?.toString() ??
+          result.first['name']
+              ?.toString() ??
+          'User';
+    }
+
+    return 'User';
   }
 }

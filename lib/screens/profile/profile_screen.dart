@@ -13,6 +13,7 @@ import '../post/camera_screen.dart';
 import '../profile/follow_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/follow_service.dart';
+import '../../core/constants/current_user.dart';
 
 bool _isAssetImagePath(String path) => path.startsWith('assets/');
 bool _isNetworkImagePath(String path) =>
@@ -78,7 +79,10 @@ List<Map<String, dynamic>> followingFromFirebase = [];
   // 🔥 ĐÃ SỬA TRIỆT ĐỂ: Chỉ giữ lại 1 hàm duy nhất, ưu tiên dữ liệu từ Firebase trước
  Future<void> _loadProfileData() async {
   if (!mounted) return;
-  setState(() => _isLoading = true);
+
+  setState(() {
+    _isLoading = true;
+  });
 
   try {
     Map<String, dynamic>? userMap;
@@ -117,19 +121,20 @@ List<Map<String, dynamic>> followingFromFirebase = [];
       }
     }
 
+    // Nếu Firebase chưa có thì lấy SQLite
     if (userMap == null) {
-      userMap = await FakeDataHelper.instance
-          .getUserById(widget.currentUserId);
+      userMap = await FakeDataHelper.instance.getUserById(
+        CurrentUser.id ?? widget.currentUserId,
+      );
     }
 
-    final posts =
-        await FakeDataHelper.instance.getPostsByUserId(
-      widget.currentUserId,
+    final posts = await FakeDataHelper.instance.getPostsByUserId(
+      CurrentUser.id ?? widget.currentUserId,
     );
 
     final highlightsData =
         await FakeDataHelper.instance.getHighlights(
-      widget.currentUserId,
+      CurrentUser.id ?? widget.currentUserId,
     );
 
     if (mounted) {
@@ -137,19 +142,20 @@ List<Map<String, dynamic>> followingFromFirebase = [];
         _userData = userMap;
         _userPosts = posts;
         _highlights = highlightsData;
-
-
         _isLoading = false;
       });
     }
   } catch (e) {
-    print("❌ Lỗi load dữ liệu: $e");
+    debugPrint('❌ Lỗi load dữ liệu: $e');
 
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 }
+
 
   // Cầu nối đồng bộ để lệnh Kéo để Refresh (onRefresh) không bị lỗi biên dịch
 
@@ -454,9 +460,8 @@ Future<void> _showCreateHighlightSheet() async {
                       final title =
                           titleController.text.trim();
 
-                      await FakeDataHelper.instance
-                          .insertHighlight(
-                        widget.currentUserId,
+                      await FakeDataHelper.instance.insertHighlight(
+                        CurrentUser.id ?? widget.currentUserId,
                         title.isEmpty ? 'Mới' : title,
                         selectedImagePath,
                       );
@@ -578,7 +583,9 @@ Future<void> _showCreateHighlightSheet() async {
                   context,
                   MaterialPageRoute(
                       builder: (context) => EditProfileScreen(
-                          currentUserId: widget.currentUserId)));
+                                currentUserId:
+                                    CurrentUser.id ?? widget.currentUserId,
+                              )));
               if (result == true) {
                 _loadSqliteData();
               }

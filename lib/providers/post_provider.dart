@@ -1,8 +1,10 @@
-// Feed
+// lib/providers/post_provider.dart
+
 import 'package:flutter/material.dart';
 
 import '../models/post_model.dart';
 import '../services/fake_data_service.dart';
+import '../core/constants/current_user.dart';
 
 class PostProvider extends ChangeNotifier {
   final FakeDataHelper db = FakeDataHelper.instance;
@@ -11,25 +13,50 @@ class PostProvider extends ChangeNotifier {
 
   bool isLoading = false;
 
-  // LOAD POSTS
+  // ==========================
+  // LOAD FEED (TẤT CẢ BÀI VIẾT)
+  // ==========================
   Future<void> loadPosts() async {
     isLoading = true;
     notifyListeners();
 
-    final data = await db.getPostsByUserId(1);
+    final data = await db.getAllPosts();
 
-    posts =
-        data.map((e) {
-          return PostModel.fromMap(e);
-        }).toList();
+    posts = data
+        .map(
+          (e) => PostModel.fromMap(e),
+        )
+        .toList();
 
     isLoading = false;
     notifyListeners();
   }
 
-  // LIKE
-  Future<void> likePost(PostModel post) async {
-    final newLikes = post.likesCount + 1;
+  // ==========================
+  // LOAD PROFILE POSTS
+  // ==========================
+  Future<List<PostModel>> getPostsByUser(
+    int userId,
+  ) async {
+    final data = await db.getPostsByUserId(
+      userId,
+    );
+
+    return data
+        .map(
+          (e) => PostModel.fromMap(e),
+        )
+        .toList();
+  }
+
+  // ==========================
+  // LIKE POST
+  // ==========================
+  Future<void> likePost(
+    PostModel post,
+  ) async {
+    final newLikes =
+        post.likesCount + 1;
 
     await db.updatePostLikes(
       post.id!,
@@ -39,13 +66,15 @@ class PostProvider extends ChangeNotifier {
     await loadPosts();
   }
 
+  // ==========================
   // CREATE POST
+  // ==========================
   Future<void> createPost({
     required String imageUrl,
     required String caption,
   }) async {
     await db.insertPost(
-      1,
+      CurrentUser.id ?? 1,
       imageUrl,
       caption,
     );
@@ -53,9 +82,15 @@ class PostProvider extends ChangeNotifier {
     await loadPosts();
   }
 
+  // ==========================
   // DELETE POST
-  Future<void> deletePost(int postId) async {
-    await db.deletePost(postId);
+  // ==========================
+  Future<void> deletePost(
+    int postId,
+  ) async {
+    await db.deletePost(
+      postId,
+    );
 
     await loadPosts();
   }

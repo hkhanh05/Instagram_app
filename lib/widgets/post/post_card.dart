@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/post_model.dart';
 import '../../screens/feed/comment_screen.dart';
+import '../../services/fake_data_service.dart';
 
 class PostCard extends StatefulWidget {
   final PostModel post;
@@ -19,6 +20,27 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   bool isLiked = false;
+
+  String username = "Loading...";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final name =
+        await FakeDataHelper.instance.getUsernameByUserId(
+      widget.post.userId,
+    );
+
+    if (mounted) {
+      setState(() {
+        username = name;
+      });
+    }
+  }
 
   void _toggleLike() {
     setState(() {
@@ -73,8 +95,7 @@ class _PostCardState extends State<PostCard> {
                         children: [
                           const CircleAvatar(
                             radius: 28,
-                            backgroundImage:
-                                NetworkImage(
+                            backgroundImage: NetworkImage(
                               'https://i.pravatar.cc/150',
                             ),
                           ),
@@ -93,7 +114,7 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  Widget buildPostImage() {
+  Widget _buildPostImage() {
     final image = widget.post.imageUrl;
 
     if (image.startsWith('/')) {
@@ -110,14 +131,25 @@ class _PostCardState extends State<PostCard> {
       width: double.infinity,
       height: 450,
       fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) {
+        return Container(
+          height: 450,
+          color: Colors.grey.shade300,
+          child: const Center(
+            child: Icon(
+              Icons.broken_image,
+              size: 50,
+            ),
+          ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // HEADER
         ListTile(
@@ -126,9 +158,9 @@ class _PostCardState extends State<PostCard> {
               'https://i.pravatar.cc/150?img=3',
             ),
           ),
-          title: const Text(
-            "khanh",
-            style: TextStyle(
+          title: Text(
+            username,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -141,7 +173,7 @@ class _PostCardState extends State<PostCard> {
         // IMAGE
         GestureDetector(
           onDoubleTap: _toggleLike,
-          child: buildPostImage(),
+          child: _buildPostImage(),
         ),
 
         // ACTIONS
@@ -152,9 +184,8 @@ class _PostCardState extends State<PostCard> {
                 isLiked
                     ? Icons.favorite
                     : Icons.favorite_border,
-                color: isLiked
-                    ? Colors.red
-                    : Colors.black,
+                color:
+                    isLiked ? Colors.red : Colors.black,
               ),
               onPressed: _toggleLike,
             ),
@@ -184,8 +215,7 @@ class _PostCardState extends State<PostCard> {
 
         // LIKES
         Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 12,
           ),
           child: Text(
@@ -200,8 +230,7 @@ class _PostCardState extends State<PostCard> {
 
         // CAPTION
         Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 12,
           ),
           child: RichText(
@@ -210,11 +239,10 @@ class _PostCardState extends State<PostCard> {
                 color: Colors.black,
               ),
               children: [
-                const TextSpan(
-                  text: "khanh ",
-                  style: TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
+                TextSpan(
+                  text: "$username ",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 TextSpan(
@@ -228,8 +256,7 @@ class _PostCardState extends State<PostCard> {
         const SizedBox(height: 6),
 
         const Padding(
-          padding:
-              EdgeInsets.symmetric(
+          padding: EdgeInsets.symmetric(
             horizontal: 12,
           ),
           child: Text(
