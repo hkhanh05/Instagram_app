@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/post_provider.dart';
+import '../../services/fake_data_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -169,21 +170,17 @@ class _CreatePostScreenState
                       return;
                     }
 
-                    final provider =
-                        Provider.of<PostProvider>(
-                      context,
-                      listen: false,
-                    );
+                    await FakeDataHelper.instance.insertPost(
+  1,
+  imagePath,
+  captionController.text.trim().isEmpty
+      ? 'Bài viết mới'
+      : captionController.text.trim(),
+);
 
-                    await provider.createPost(
-                      imageUrl: imagePath,
-                      caption:
-                          captionController.text,
-                    );
-
-                    if (mounted) {
-                      Navigator.pop(context);
-                    }
+if (mounted) {
+  Navigator.pop(context, true);
+}
                   },
                   child: const CircleAvatar(
                     radius: 26,

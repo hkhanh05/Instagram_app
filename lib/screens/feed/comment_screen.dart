@@ -255,7 +255,7 @@ class CommentScreen extends StatefulWidget {
 class _CommentScreenState extends State<CommentScreen> {
   final TextEditingController controller = TextEditingController();
 
-  final db = DatabaseHelper.instance;
+  final db = FakeDataHelper.instance;
 
   List<Map<String, dynamic>> comments = [];
 

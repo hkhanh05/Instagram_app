@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../message/chat_screen.dart';
 
 class InstagramFollowScreen extends StatelessWidget {
   final int initialIndex;
@@ -128,6 +129,7 @@ class _FollowerTabContentState extends State<FollowerTabContent> {
                 _followStatusMap[userId] ?? (user['isFollowing'] == 1);
 
             return _buildUserTile(
+              context: context,
               userData: user,
               isFollowerTab: true,
               isButtonActive: isFollowingBack,
@@ -135,7 +137,6 @@ class _FollowerTabContentState extends State<FollowerTabContent> {
                 setState(() {
                   _followStatusMap[userId] = !isFollowingBack;
                 });
-                // To-Do: Bạn có thể gọi thêm Firebase Firestore để cập nhật trạng thái follow thực tế tại đây
               },
             );
           },
@@ -205,10 +206,11 @@ class _FollowingTabContentState extends State<FollowingTabContent> {
             bool isUnfollowed = _unfollowStatusMap[userId] ?? false;
 
             return _buildUserTile(
-              userData: user,
-              isFollowerTab: false,
-              isButtonActive: isUnfollowed,
-              onButtonPressed: () {
+  context: context,
+  userData: user,
+  isFollowerTab: false,
+  isButtonActive: isUnfollowed,
+  onButtonPressed: () {
                 setState(() {
                   _unfollowStatusMap[userId] = !isUnfollowed;
                 });
@@ -261,16 +263,18 @@ Widget _buildCategoryItem(String title, String sub, IconData icon) {
 }
 
 Widget _buildUserTile({
+  required BuildContext context,
   required Map<String, dynamic> userData,
   required bool isFollowerTab,
   required bool isButtonActive,
   required VoidCallback onButtonPressed,
 }) {
-  String buttonText = "";
+  String buttonText;
+
   if (isFollowerTab) {
-    buttonText = isButtonActive ? "Theo dõi lại" : "Nhắn tin";
+    buttonText = isButtonActive ? "Đang theo dõi" : "Theo dõi lại";
   } else {
-    buttonText = isButtonActive ? "Theo dõi" : "Nhắn tin";
+    buttonText = isButtonActive ? "Theo dõi" : "Đang theo dõi";
   }
 
   String avatarUrl = userData['avatarUrl'] ?? '';
@@ -281,41 +285,88 @@ Widget _buildUserTile({
     leading: CircleAvatar(
       radius: 26,
       backgroundColor: Colors.grey[200],
-      backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+      backgroundImage:
+          avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
       child: avatarUrl.isEmpty
           ? const Icon(Icons.person, color: Colors.grey)
           : null,
     ),
-    title: Text(username,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-    subtitle: Text(fullName,
-        style: const TextStyle(color: Colors.grey, fontSize: 13)),
+    title: Text(
+      username,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+    ),
+    subtitle: Text(
+      fullName,
+      style: const TextStyle(
+        color: Colors.grey,
+        fontSize: 13,
+      ),
+    ),
     trailing: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: 30,
+          height: 32,
           child: OutlinedButton(
             onPressed: onButtonPressed,
             style: OutlinedButton.styleFrom(
-              backgroundColor: isButtonActive ? Colors.blue : Colors.grey[100],
+              backgroundColor:
+                  isButtonActive ? Colors.blue : Colors.grey[100],
               side: BorderSide(
-                  color: isButtonActive ? Colors.blue : Colors.grey.shade300),
+                color: isButtonActive
+                    ? Colors.blue
+                    : Colors.grey.shade300,
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(
               buttonText,
               style: TextStyle(
-                  color: isButtonActive ? Colors.white : Colors.black,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold),
+                color:
+                    isButtonActive ? Colors.white : Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
+
         const SizedBox(width: 8),
-        Icon(isFollowerTab ? Icons.close : Icons.more_vert,
-            color: Colors.grey, size: 20),
+
+        SizedBox(
+          height: 32,
+          child: OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ChatScreen(),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: Colors.grey.shade300,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Nhắn tin",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
       ],
     ),
   );

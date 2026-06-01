@@ -1,33 +1,70 @@
+import 'dart:io';
+import '../../services/fake_data_service.dart';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'edit_profile_screen.dart';
-import 'follow_screen.dart';
+import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
 import '../story/story_view_screen.dart';
+import '../../core/utils/helpers.dart';
+import '../story/hightlight_view_screen.dart';
+import '../post/camera_screen.dart';
+import '../profile/follow_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+bool _isAssetImagePath(String path) => path.startsWith('assets/');
+bool _isNetworkImagePath(String path) =>
+    path.startsWith('http://') || path.startsWith('https://');
+
+ImageProvider _imageProviderFromPath(String path) {
+  if (_isAssetImagePath(path)) {
+    return AssetImage(path);
+  }
+  if (_isNetworkImagePath(path)) {
+    return NetworkImage(path);
+  }
+  return FileImage(File(path));
+}
+
+Widget _postImageFromPath(String path,
+    {BoxFit fit = BoxFit.cover, double? height}) {
+  if (path.isEmpty) {
+    return Container(
+      height: height,
+      color: Colors.grey[200],
+      child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+    );
+  }
+
+  if (_isAssetImagePath(path)) {
+    return Image.asset(path, width: double.infinity, height: height, fit: fit);
+  }
+  if (_isNetworkImagePath(path)) {
+    return Image.network(path,
+        width: double.infinity, height: height, fit: fit);
+  }
+  return Image.file(File(path),
+      width: double.infinity, height: height, fit: fit);
+}
 
 class ProfileScreen extends StatefulWidget {
+  final int currentUserId;
   final String? firebaseUid;
 
-  // 🔥 ĐÃ SỬA: Bỏ currentUserId của SQLite, chỉ giữ lại firebaseUid
-  const ProfileScreen({super.key, this.firebaseUid});
+  const ProfileScreen({super.key, this.currentUserId = 1, this.firebaseUid});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AudioPlayer _player = AudioPlayer();
-  bool isPlaying = false;
-
-  String currentSong = "Thêm nhạc vào trang cá nhân";
-  String currentUrl = "";
-
+  
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> _userPosts = [];
-  final List<Map<String, dynamic>> _highlights =
-      []; // Tạm thời để trống hoặc nạp từ Firestore sau
+  List<Map<String, dynamic>> _highlights = [];
   bool _isLoading = true;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -35,139 +72,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfileData();
   }
 
-  // 🔥 ĐÃ SỬA: Chạy thuần 100% bằng Firebase Firestore
-  Future<void> _loadProfileData() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
+  // 🔥 ĐÃ SỬA TRIỆT ĐỂ: Chỉ giữ lại 1 hàm duy nhất, ưu tiên dữ liệu từ Firebase trước
+ Future<void> _loadProfileData() async {
+  if (!mounted) return;
+  setState(() => _isLoading = true);
 
-    try {
-      if (widget.firebaseUid != null && widget.firebaseUid!.isNotEmpty) {
-        // 1. Tải thông tin User hồ sơ từ Firestore
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.firebaseUid)
-            .get();
+  try {
+    Map<String, dynamic>? userMap;
 
-        if (doc.exists) {
-          _userData = doc.data();
-          _userData?['username'] = _userData?['username'] ?? 'instagram_user';
-          _userData?['fullName'] =
-              _userData?['name'] ?? _userData?['fullName'] ?? 'Thành viên mới';
-          _userData?['bio'] =
-              _userData?['bio'] ?? 'Chào mừng đến với Instagram clone! 🚀';
-          _userData?['followersCount'] = _userData?['followersCount'] ?? 0;
-          _userData?['followingCount'] = _userData?['followingCount'] ?? 0;
-          _userData?['avatarUrl'] = _userData?['avatarUrl'] ?? '';
+    final currentUser = FirebaseAuth.instance.currentUser;
 
-          currentSong =
-              _userData?['currentSong'] ?? "Thêm nhạc vào trang cá nhân";
-          currentUrl = _userData?['musicUrl'] ?? "";
-        }
+    if (currentUser != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
 
-        // 2. Tải danh sách bài viết trực tuyến lọc theo uid từ Firestore
-        final postsSnapshot = await FirebaseFirestore.instance
-            .collection('posts')
-            .where('uid', isEqualTo: widget.firebaseUid)
-            .get();
+      if (doc.exists) {
+        userMap = doc.data();
 
-        _userPosts = postsSnapshot.docs.map((doc) {
-          var data = doc.data();
-          data['id'] = doc.id;
-          return data;
-        }).toList();
+        userMap?['username'] =
+            userMap?['username'] ?? 'instagram_user';
+
+        userMap?['fullName'] =
+            userMap?['fullName'] ??
+            userMap?['name'] ??
+            'Thành viên mới';
+
+        userMap?['bio'] =
+            userMap?['bio'] ??
+            'Chào mừng đến với Instagram clone! 🚀';
+
+        userMap?['followersCount'] =
+            userMap?['followersCount'] ?? 0;
+
+        userMap?['followingCount'] =
+            userMap?['followingCount'] ?? 0;
+
+        userMap?['avatarUrl'] =
+            userMap?['avatarUrl'] ?? '';
       }
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print("❌ Lỗi load dữ liệu Firebase: $e");
-      if (mounted) setState(() => _isLoading = false);
     }
-  }
 
-  Future<void> _onRefresh() async => await _loadProfileData();
-
-  @override
-  void dispose() {
-    _player.stop();
-    _player.dispose();
-    super.dispose();
-  }
-
-  void _playMusic() async {
-    if (currentUrl.isEmpty) return;
-    try {
-      if (isPlaying) {
-        await _player.pause();
-      } else {
-        await _player.play(UrlSource(currentUrl));
-      }
-      setState(() {
-        isPlaying = !isPlaying;
-      });
-    } catch (e) {
-      print("❌ Lỗi phát nhạc: $e");
+    if (userMap == null) {
+      userMap = await FakeDataHelper.instance
+          .getUserById(widget.currentUserId);
     }
-  }
 
-  void _showMusicMenu() {
-    if (currentUrl.isEmpty) return;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: Colors.grey,
-                      borderRadius: BorderRadius.circular(10))),
-              const SizedBox(height: 20),
-              Theme(
-                data: ThemeData(
-                    iconTheme: const IconThemeData(color: Colors.white)),
-                child: ListTile(
-                    title: Text(currentSong,
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold))),
-              ),
-              const Divider(color: Colors.grey),
-              ListTile(
-                leading: const Icon(Icons.swap_horiz, color: Colors.white),
-                title: const Text("Thay đổi bài hát",
-                    style: TextStyle(color: Colors.white)),
-                onTap: () => Navigator.pop(context),
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text("Gỡ bài hát",
-                    style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  setState(() {
-                    currentSong = "Thêm nhạc vào trang cá nhân";
-                    isPlaying = false;
-                    currentUrl = "";
-                  });
-                  _player.stop();
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
+    final posts =
+        await FakeDataHelper.instance.getPostsByUserId(
+      widget.currentUserId,
     );
+
+    final highlightsData =
+        await FakeDataHelper.instance.getHighlights(
+      widget.currentUserId,
+    );
+
+    if (mounted) {
+      setState(() {
+        _userData = userMap;
+        _userPosts = posts;
+        _highlights = highlightsData;
+
+
+        _isLoading = false;
+      });
+    }
+  } catch (e) {
+    print("❌ Lỗi load dữ liệu: $e");
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
+}
+
+  // Cầu nối đồng bộ để lệnh Kéo để Refresh (onRefresh) không bị lỗi biên dịch
+
+  Future<void> _loadSqliteData() async {
+  await _loadProfileData();
+}
 
   void _showInstagramShareSheet(BuildContext context) {
     int followers = _userData?['followersCount'] ?? 0;
@@ -201,6 +186,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
                 const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const TextField(
+                      decoration: InputDecoration(
+                        hintText: "Tìm kiếm...",
+                        prefixIcon:
+                            Icon(Icons.search, color: Colors.grey, size: 20),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(top: 4),
+                      ),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: followers == 0
                       ? const Center(
@@ -232,12 +235,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14)),
-                              trailing: ElevatedButton(
-                                onPressed: () => Navigator.pop(context),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue, elevation: 0),
-                                child: const Text("Gửi",
-                                    style: TextStyle(color: Colors.white)),
+                              subtitle: Text("Người theo dõi thứ $index",
+                                  style: const TextStyle(
+                                      color: Colors.grey, fontSize: 12)),
+                              trailing: SizedBox(
+                                height: 32,
+                                width: 80,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            "Đã gửi trang cá nhân đến friend_insta_$index thành công!"),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    elevation: 0,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  child: const Text("Gửi",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold)),
+                                ),
                               ),
                             );
                           },
@@ -248,6 +274,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         );
       },
+    );
+  }
+
+  void _confirmDeleteHighlight(int highlightId, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xóa tin nổi bật?"),
+        content: Text(
+            "Bạn có chắc chắn muốn xóa '$title' khỏi trang cá nhân không?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy", style: TextStyle(color: Colors.black))),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await FakeDataHelper.instance.deleteHighlight(highlightId);
+              _loadSqliteData();
+            },
+            child: const Text("Xóa",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -265,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: _buildAppBarTitle(),
           actions: _buildAppBarActions(context)),
       body: RefreshIndicator(
-        onRefresh: _onRefresh,
+        onRefresh: _loadSqliteData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -284,7 +336,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAppBarTitle() {
+    // 🔥 ĐÃ SỬA: Đọc chuẩn dữ liệu từ map Firebase/SQLite tránh lỗi trống tiêu đề
     String titleText = _userData?['username']?.toString() ?? 'instagram_user';
+    if (titleText.isEmpty) titleText = 'instagram_user';
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -303,10 +358,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Widget> _buildAppBarActions(BuildContext context) {
     return [
       IconButton(
-          icon: const Icon(Icons.add_box_outlined, color: Colors.black),
-          onPressed: () {
-            // To-Do: Viết hàm tạo Post đẩy thẳng lên Firestore sau này tại đây
-          }),
+  icon: const Icon(Icons.add_box_outlined, color: Colors.black),
+  onPressed: () async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CameraScreen(),
+      ),
+    );
+
+    if (result == true) {
+      await _loadSqliteData();
+    }
+  },
+),
       IconButton(
           icon: const Icon(Icons.menu, color: Colors.black),
           onPressed: () => Navigator.push(context,
@@ -314,11 +379,123 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
   }
 
+Future<void> _showCreateHighlightSheet() async {
+  final XFile? pickedImage = await _imagePicker.pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 85,
+  );
+
+  if (pickedImage == null || !mounted) return;
+
+  final titleController = TextEditingController();
+  final selectedImagePath = pickedImage.path;
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(20),
+      ),
+    ),
+    builder: (sheetContext) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom:
+                MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tạo tin nổi bật',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _postImageFromPath(selectedImagePath),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  hintText: 'Tên highlight',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      final title =
+                          titleController.text.trim();
+
+                      await FakeDataHelper.instance
+                          .insertHighlight(
+                        widget.currentUserId,
+                        title.isEmpty ? 'Mới' : title,
+                        selectedImagePath,
+                      );
+
+                      if (!mounted) return;
+
+                      Navigator.pop(sheetContext);
+
+                      Future.delayed(
+                        const Duration(milliseconds: 300),
+                        () {
+                          if (mounted) {
+                            _loadProfileData();
+                          }
+                        },
+                      );
+                    } catch (e) {
+                      debugPrint(
+                        'Lỗi lưu highlight: $e',
+                      );
+                    }
+                  },
+                  child: const Text('Lưu highlight'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+}
+
   Widget _buildHeader(BuildContext context) {
     int followers = _userData?['followersCount'] ?? 0;
     int following = _userData?['followingCount'] ?? 0;
     String avatar = _userData?['avatarUrl'] ?? '';
+
+    // 🔥 ĐÃ SỬA: Ép giá trị hiển thị Tên đầy đủ từ Firebase
     String displayName = _userData?['fullName']?.toString() ?? 'Thành viên mới';
+    if (displayName.isEmpty) displayName = 'Thành viên mới';
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -360,66 +537,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 10),
           Text(displayName,
               style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(_userData?['bio'] ?? ''),
+          Text(_userData?['bio'] ?? 'Chào mừng đến với Instagram clone! 🚀'),
           const SizedBox(height: 8),
-          if (currentUrl.isNotEmpty)
-            GestureDetector(
-              onTap: _playMusic,
-              onLongPress: _showMusicMenu,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(15)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(isPlaying ? Icons.pause : Icons.music_note,
-                        size: 16, color: Colors.black),
-                    const SizedBox(width: 4),
-                    Text(currentSong,
-                        style:
-                            const TextStyle(fontSize: 13, color: Colors.black)),
-                  ],
-                ),
-              ),
-            ),
+          
         ],
       ),
     );
   }
 
   void _goToFollow(
-      BuildContext context, int index, int followers, int following) {
-    List<Map<String, dynamic>> mockFollowersList = List.generate(
-        followers,
-        (i) => {
-              'id': i,
-              'username': 'follower_fb_$i',
-              'fullName': 'Người theo dõi $i',
-              'avatarUrl': '',
-              'isFollowing': 0
-            });
-    List<Map<String, dynamic>> mockFollowingList = List.generate(
-        following,
-        (i) => {
-              'id': i,
-              'username': 'following_fb_$i',
-              'fullName': 'Đang theo dõi $i',
-              'avatarUrl': ''
-            });
-
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => InstagramFollowScreen(
-                initialIndex: index,
-                username: _userData?['username'] ?? 'instagram_user',
-                followersList: mockFollowersList,
-                followingList: mockFollowingList)));
-  }
-
+    BuildContext context,
+    int index,
+    int followers,
+    int following,
+) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => InstagramFollowScreen(
+        initialIndex: index,
+        username: _userData?['username'] ?? 'instagram_user',
+        followersList: [],
+        followingList: [],
+      ),
+    ),
+  );
+}
   Widget _buildButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -431,10 +574,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>
-                          EditProfileScreen(firebaseUid: widget.firebaseUid)));
+                      builder: (context) => EditProfileScreen(
+                          currentUserId: widget.currentUserId)));
               if (result == true) {
-                _loadProfileData();
+                _loadSqliteData();
               }
             },
             style: ElevatedButton.styleFrom(
@@ -464,21 +607,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStoryHighlights() {
-    if (_highlights.isEmpty) return const SizedBox.shrink();
+    final visibleHighlights = [
+      {'isAdd': 'true', 'title': 'Mới', 'imageUrl': '', 'id': 0},
+      ..._highlights.where((item) => item['isAdd'] != 'true'),
+    ];
+
     return Container(
       height: 110,
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _highlights.length,
+        itemCount: visibleHighlights.length,
         itemBuilder: (context, index) {
-          final item = _highlights[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Column(children: [
-              CircleAvatar(radius: 30, backgroundColor: Colors.grey[200]),
-              Text(item['title'] ?? '')
-            ]),
+          final item = visibleHighlights[index];
+          bool isAddButton = item['isAdd'] == 'true';
+          String highlightImg = item['imageUrl']?.toString() ?? '';
+          int highlightId = item['id'] ?? 0;
+          String title = item['title'] ?? '';
+
+          return GestureDetector(
+            onTap: () {
+              if (isAddButton) {
+                _showCreateHighlightSheet();
+              } else {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => HighlightViewerScreen(
+        imagePath: highlightImg,
+        title: title,
+      ),
+    ),
+  );
+}
+            },
+            onLongPress: () {
+              if (!isAddButton && highlightId != 0) {
+                _confirmDeleteHighlight(highlightId, title);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade300)),
+                    child: CircleAvatar(
+                      radius: 30,
+                      backgroundColor:
+                          isAddButton ? Colors.white : Colors.grey[200],
+                      backgroundImage: (!isAddButton && highlightImg.isNotEmpty)
+                          ? _imageProviderFromPath(highlightImg)
+                          : null,
+                      child: isAddButton
+                          ? const Icon(Icons.add, color: Colors.black, size: 30)
+                          : (highlightImg.isEmpty
+                              ? const Icon(Icons.person, color: Colors.grey)
+                              : null),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
           );
         },
       ),
@@ -494,12 +691,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ]));
 
   Widget _buildGrid() {
-    if (_userPosts.isEmpty)
+    if (_userPosts.isEmpty) {
       return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-              child: Text("Chưa có bài viết nào",
-                  style: TextStyle(color: Colors.grey))));
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child:
+            Text("Chưa có bài viết nào", style: TextStyle(color: Colors.grey)),
+      );
+    }
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -509,13 +707,366 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemBuilder: (context, index) {
         final post = _userPosts[index];
         String url = post['imageUrl'] ?? '';
-        return url.isNotEmpty
-            ? Image.network(url, fit: BoxFit.cover)
-            : Container(
-                color: Colors.grey[300],
-                child:
-                    const Icon(Icons.image_not_supported, color: Colors.grey));
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PostDetailScreen(
+                  allPosts: _userPosts,
+                  initialIndex: index,
+                  username: _userData?['username'] ?? 'instagram_user',
+                  avatarUrl: _userData?['avatarUrl'] ?? '',
+                  onPostDeleted: _loadSqliteData,
+                ),
+              ),
+            );
+          },
+          child: url.isNotEmpty
+              ? _postImageFromPath(url)
+              : Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported,
+                      color: Colors.grey)),
+        );
       },
+    );
+  }
+}
+
+class PostDetailScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> allPosts;
+  final int initialIndex;
+  final String username;
+  final String avatarUrl;
+  final VoidCallback? onPostDeleted;
+
+  const PostDetailScreen({
+    super.key,
+    required this.allPosts,
+    required this.initialIndex,
+    required this.username,
+    required this.avatarUrl,
+    this.onPostDeleted,
+  });
+
+  @override
+  State<PostDetailScreen> createState() => _PostDetailScreenState();
+}
+
+class _PostDetailScreenState extends State<PostDetailScreen> {
+  List<Map<String, dynamic>> _currentPosts = [];
+  Map<int, int> _likesMap = {};
+  Map<int, List<Map<String, dynamic>>> _commentsMap = {};
+  Map<int, bool> _isLikedByUser = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPosts = List.from(widget.allPosts);
+    _initData();
+  }
+
+  void _initData() {
+    for (int i = 0; i < _currentPosts.length; i++) {
+      int postId = _currentPosts[i]['id'];
+      _likesMap[postId] = _currentPosts[i]['likesCount'] ?? 0;
+      _loadComments(postId);
+    }
+  }
+
+  Future<void> _loadComments(int postId) async {
+    final comments = await FakeDataHelper.instance.getCommentsByPostId(postId);
+    if (mounted) {
+      setState(() {
+        _commentsMap[postId] = comments;
+      });
+    }
+  }
+
+  void _showPostOptions(int postId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10))),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Xóa bài viết',
+                    style: TextStyle(
+                        color: Colors.red, fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeletePost(postId);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bookmark_border),
+                title: const Text('Lưu bài viết'),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeletePost(int postId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xóa bài viết?"),
+        content:
+            const Text("Bài viết này sẽ bị xóa vĩnh viễn khỏi SQLite của bạn."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy", style: TextStyle(color: Colors.black))),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await FakeDataHelper.instance.deletePost(postId);
+              setState(() {
+                _currentPosts.removeWhere((post) => post['id'] == postId);
+              });
+              if (widget.onPostDeleted != null) {
+                widget.onPostDeleted!();
+              }
+              if (_currentPosts.isEmpty && mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Xóa",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCommentSheet(int postId) {
+    final TextEditingController commentController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                const Text('Bình luận',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Divider(),
+                Expanded(
+                  child: (_commentsMap[postId] ?? []).isEmpty
+                      ? const Center(
+                          child: Text("Chưa có bình luận nào.",
+                              style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          itemCount: (_commentsMap[postId] ?? []).length,
+                          itemBuilder: (context, index) {
+                            final comment = _commentsMap[postId]![index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                radius: 15,
+                                backgroundImage: widget.avatarUrl.isNotEmpty
+                                    ? NetworkImage(widget.avatarUrl)
+                                    : null,
+                                child: widget.avatarUrl.isEmpty
+                                    ? const Icon(Icons.person, size: 15)
+                                    : null,
+                              ),
+                              title: Text(comment['username'] ?? '',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13)),
+                              subtitle: Text(comment['content'] ?? ''),
+                            );
+                          },
+                        ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundImage: widget.avatarUrl.isNotEmpty
+                            ? NetworkImage(widget.avatarUrl)
+                            : null,
+                        child: widget.avatarUrl.isEmpty
+                            ? const Icon(Icons.person)
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: commentController,
+                          decoration: const InputDecoration(
+                              hintText: 'Thêm bình luận...',
+                              border: InputBorder.none),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          if (commentController.text.isNotEmpty) {
+                            await FakeDataHelper.instance.insertComment(postId,
+                                widget.username, commentController.text);
+                            commentController.clear();
+                            await _loadComments(postId);
+                            setState(() {});
+                            Navigator.pop(context);
+                            _showCommentSheet(postId);
+                          }
+                        },
+                        child: const Text('Đăng',
+                            style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold)),
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Bài viết',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context)),
+      ),
+      body: _currentPosts.isEmpty
+          ? const Center(
+              child: Text("Không có bài viết nào",
+                  style: TextStyle(color: Colors.grey)))
+          : ListView.builder(
+              itemCount: _currentPosts.length,
+              itemBuilder: (context, index) {
+                int actualIndex =
+                    (index + widget.initialIndex) % _currentPosts.length;
+                return _buildPostItem(_currentPosts[actualIndex]);
+              },
+            ),
+    );
+  }
+
+  Widget _buildPostItem(Map<String, dynamic> postData) {
+    int postId = postData['id'];
+    int currentLikes = _likesMap[postId] ?? 0;
+    bool isLiked = _isLikedByUser[postId] ?? false;
+    int commentLength = _commentsMap[postId]?.length ?? 0;
+    String postImg = postData['imageUrl'] ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: CircleAvatar(
+            radius: 18,
+            backgroundImage: widget.avatarUrl.isNotEmpty
+                ? NetworkImage(widget.avatarUrl)
+                : null,
+            child: widget.avatarUrl.isEmpty ? const Icon(Icons.person) : null,
+          ),
+          title: Text(widget.username,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          trailing: IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.black),
+            onPressed: () => _showPostOptions(postId),
+          ),
+        ),
+        _postImageFromPath(postImg, height: 300),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  setState(() {
+                    isLiked = !isLiked;
+                    _isLikedByUser[postId] = isLiked;
+                    _likesMap[postId] =
+                        isLiked ? currentLikes + 1 : currentLikes - 1;
+                  });
+                  await FakeDataHelper.instance
+                      .updatePostLikes(postId, _likesMap[postId]!);
+                },
+                child: Icon(isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : Colors.black, size: 28),
+              ),
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: () => _showCommentSheet(postId),
+                child: const Icon(Icons.chat_bubble_outline, size: 26),
+              ),
+              const SizedBox(width: 16),
+              const Icon(Icons.send_outlined, size: 26),
+              const Spacer(),
+              const Icon(Icons.bookmark_border, size: 28),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$currentLikes lượt thích',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text.rich(TextSpan(children: [
+                TextSpan(
+                    text: '${widget.username} ',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(text: postData['caption'] ?? ''),
+              ])),
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: () => _showCommentSheet(postId),
+                child: Text('Xem tất cả $commentLength bình luận',
+                    style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        const Divider(),
+      ],
     );
   }
 }
@@ -525,15 +1076,16 @@ class _StatItem extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   const _StatItem({required this.count, required this.label, this.onTap});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: onTap,
-        child: Column(children: [
-          Text(count,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(label, style: const TextStyle(fontSize: 12))
-        ]));
+      onTap: onTap,
+      child: Column(children: [
+        Text(count,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ]),
+    );
   }
 }
