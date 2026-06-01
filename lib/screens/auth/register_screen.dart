@@ -1,7 +1,8 @@
 import "package:flutter/material.dart";
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:cloud_firestore/cloud_firestore.dart'; // Đã thêm
 import "../../controllers/login_controller.dart";
-import "../../models/user_model.dart"; // Đảm bảo đường dẫn này đúng
+import "../../models/user_model.dart";
 import "../main/main_screen.dart";
 
 class RegisterScreen extends StatefulWidget {
@@ -45,7 +46,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       usernameError = usernameController.text.trim().isEmpty;
     });
 
-    // Kiểm tra thêm việc chọn ngày tháng năm sinh
     if (selectedMonth == null || selectedDay == null || selectedYear == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -56,10 +56,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (!emailError && !passwordError && !nameError && !usernameError) {
-      // Ghép ngày tháng năm lại thành chuỗi chuỗi dạng: "DD/MM/YYYY"
       String birthdayStr = "$selectedDay/$selectedMonth/$selectedYear";
 
-      // Khởi tạo Object User đầy đủ thuộc tính để truyền sang Controller
       User newUser = User(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
@@ -72,19 +70,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (mounted) {
         if (success) {
+          final String? currentFirebaseUid =
+              fb_auth.FirebaseAuth.instance.currentUser?.uid;
+
+          if (currentFirebaseUid != null) {
+            try {
+              // 🔥 KHỞI TẠO HỒ SƠ LÊN FIRESTORE
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentFirebaseUid)
+                  .set({
+                'uid': currentFirebaseUid,
+                'email': emailController.text.trim(),
+                'fullName': nameController.text.trim(),
+                'username': usernameController.text.trim(),
+                'birthday': birthdayStr,
+                'bio': 'Chào mừng đến với Instagram clone! 🚀',
+                'avatarUrl': '',
+                'followersCount': 0,
+                'followingCount': 0,
+                'currentSong': "Thêm nhạc vào trang cá nhân",
+                'musicUrl': "",
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+              print("🚀 Đã khởi tạo hồ sơ người dùng mới lên Firestore!");
+            } catch (e) {
+              print("❌ Lỗi khởi tạo Firestore: $e");
+            }
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 content: Text("Đăng ký thành công!"),
                 backgroundColor: Colors.green),
           );
 
-          // Lấy UID của tài khoản Firebase hiq
-          //q
-          //ện tại vừa đăng ký xong
-          final String? currentFirebaseUid =
-              fb_auth.FirebaseAuth.instance.currentUser?.uid;
-
-          // Điều hướng và truyền UID sang MainScreen
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
@@ -187,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _handleSignUp, // Gọi hàm đã sửa
+                        onPressed: _handleSignUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -222,7 +242,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // --- WIDGET HELPER ---
   Widget buildTextField(String hint, TextEditingController controller,
       {bool isPassword = false,
       required FocusNode focusNode,

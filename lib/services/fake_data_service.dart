@@ -1,9 +1,8 @@
 // Dữ liệu giả để test UI
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../../models/profile_model.dart'; 
+import '../../models/profile_model.dart';
 import '../../models/post_model.dart';
-
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -82,43 +81,58 @@ class DatabaseHelper {
 
     // Chèn 2 bài viết mẫu ban đầu
     await db.insert('posts', {
-      'id': 101, 
-      'userId': 1, 
-      'imageUrl': 'https://picsum.photos/400?random=1', 
-      'caption': 'Học Flutter rất vui! 🚀', 
+      'id': 101,
+      'userId': 1,
+      'imageUrl': 'https://picsum.photos/400?random=1',
+      'caption': 'Học Flutter rất vui! 🚀',
       'likesCount': 15
     });
     await db.insert('posts', {
-      'id': 102, 
-      'userId': 1, 
-      'imageUrl': 'https://picsum.photos/400?random=2', 
-      'caption': 'Giao diện Instagram Clone.', 
+      'id': 102,
+      'userId': 1,
+      'imageUrl': 'https://picsum.photos/400?random=2',
+      'caption': 'Giao diện Instagram Clone.',
       'likesCount': 28
     });
 
     // Chèn bình luận mẫu cho bài viết 101
-    await db.insert('comments', {'postId': 101, 'username': 'user_0', 'content': 'Đẹp quá 😍'});
-    await db.insert('comments', {'postId': 101, 'username': 'user_1', 'content': '10 điểm ❤️'});
+    await db.insert('comments',
+        {'postId': 101, 'username': 'user_0', 'content': 'Đẹp quá 😍'});
+    await db.insert('comments',
+        {'postId': 101, 'username': 'user_1', 'content': '10 điểm ❤️'});
 
     // Chèn Highlights mẫu
-    await db.insert('highlights', {'userId': 1, 'title': 'Mới', 'imageUrl': '', 'isAdd': 'true'});
-    await db.insert('highlights', {'userId': 1, 'title': 'Du lịch', 'imageUrl': 'https://picsum.photos/200?random=10', 'isAdd': 'false'});
-    await db.insert('highlights', {'userId': 1, 'title': 'Thú cưng', 'imageUrl': 'https://picsum.photos/200?random=11', 'isAdd': 'false'});
+    await db.insert('highlights',
+        {'userId': 1, 'title': 'Mới', 'imageUrl': '', 'isAdd': 'true'});
+    await db.insert('highlights', {
+      'userId': 1,
+      'title': 'Du lịch',
+      'imageUrl': 'https://picsum.photos/200?random=10',
+      'isAdd': 'false'
+    });
+    await db.insert('highlights', {
+      'userId': 1,
+      'title': 'Thú cưng',
+      'imageUrl': 'https://picsum.photos/200?random=11',
+      'isAdd': 'false'
+    });
   }
 
   // --- CÁC HÀM TRUY VẤN DỮ LIỆU ĐỘNG ---
-  
+
   // Lấy thông tin User
   Future<Map<String, dynamic>?> getUserById(int userId) async {
     final db = await instance.database;
-    final res = await db.query('user_profile', where: 'id = ?', whereArgs: [userId]);
+    final res =
+        await db.query('user_profile', where: 'id = ?', whereArgs: [userId]);
     return res.isNotEmpty ? res.first : null;
   }
 
   // Lấy toàn bộ bài đăng của một User cụ thể
   Future<List<Map<String, dynamic>>> getPostsByUserId(int userId) async {
     final db = await instance.database;
-    return await db.query('posts', where: 'userId = ?', orderBy: 'id DESC', whereArgs: [userId]);
+    return await db.query('posts',
+        where: 'userId = ?', orderBy: 'id DESC', whereArgs: [userId]);
   }
 
   // 🔥 THÊM HÀM NÀY: Giúp trang HOME có thể gọi để chèn bài viết mới vào SQLite
@@ -132,15 +146,21 @@ class DatabaseHelper {
     });
   }
 
-
-  Future<int> insertHighlight(int userId,String title,String imageUrl,) async {
+  Future<int> insertHighlight(
+    int userId,
+    String title,
+    String imageUrl,
+  ) async {
     final db = await instance.database;
-    return await db.insert('highlights',{
-      'userId': userId,
-      'title': title,
-      'imageUrl': imageUrl,
-      'isAdd': 'false',
-    },);
+    return await db.insert(
+      'highlights',
+      {
+        'userId': userId,
+        'title': title,
+        'imageUrl': imageUrl,
+        'isAdd': 'false',
+      },
+    );
   }
 
   // Lấy danh sách bình luận theo ID bài viết
@@ -152,37 +172,40 @@ class DatabaseHelper {
   // Thêm bình luận mới
   Future<int> insertComment(int postId, String username, String content) async {
     final db = await instance.database;
-    return await db.insert('comments', {'postId': postId, 'username': username, 'content': content});
+    return await db.insert('comments',
+        {'postId': postId, 'username': username, 'content': content});
   }
 
   // Lấy danh sách tin nổi bật (Highlights)
   Future<List<Map<String, dynamic>>> getHighlights(int userId) async {
     final db = await instance.database;
-    return await db.query('highlights', where: 'userId = ?', whereArgs: [userId]);
+    return await db
+        .query('highlights', where: 'userId = ?', whereArgs: [userId]);
   }
 
   // Cập nhật số lượt thích của bài viết khi bấm Tim
   Future<int> updatePostLikes(int postId, int newLikes) async {
     final db = await instance.database;
-    return await db.update('posts', {'likesCount': newLikes}, where: 'id = ?', whereArgs: [postId]);
+    return await db.update('posts', {'likesCount': newLikes},
+        where: 'id = ?', whereArgs: [postId]);
   }
 
   // Thêm hàm này vào trong class DatabaseHelper của bạn
-Future<int> deletePost(int postId) async {
-  final db = await instance.database;
-  return await db.delete(
-    'posts', // Tên bảng bài viết của bạn, hãy sửa lại nếu tên bảng khác
-    where: 'id = ?',
-    whereArgs: [postId],
-  );
-}
+  Future<int> deletePost(int postId) async {
+    final db = await instance.database;
+    return await db.delete(
+      'posts', // Tên bảng bài viết của bạn, hãy sửa lại nếu tên bảng khác
+      where: 'id = ?',
+      whereArgs: [postId],
+    );
+  }
 
-Future<int> deleteHighlight(int highlightId) async {
-  final db = await instance.database;
-  return await db.delete(
-    'highlights', // Tên bảng highlight của bạn, hãy sửa lại nếu tên bảng khác
-    where: 'id = ?',
-    whereArgs: [highlightId],
-  );
-}
+  Future<int> deleteHighlight(int highlightId) async {
+    final db = await instance.database;
+    return await db.delete(
+      'highlights', // Tên bảng highlight của bạn, hãy sửa lại nếu tên bảng khác
+      where: 'id = ?',
+      whereArgs: [highlightId],
+    );
+  }
 }
