@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/auth/splash_screen.dart';
+import 'package:provider/provider.dart';
+import 'providers/post_provider.dart';
 
 void main() async {
   // Bắt buộc phải thêm dòng này khi chạy bất đồng bộ trong main
@@ -9,7 +11,16 @@ void main() async {
   // Khởi tạo các dịch vụ Firebase
   await Firebase.initializeApp();
 
-  runApp(const MyApp());
+  runApp(
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider(
+                  create: (_) => PostProvider(),
+                ),
+              ],
+              child: const MyApp(),
+            ),
+          );
 }
 
 class MyApp extends StatelessWidget {

@@ -1,6 +1,5 @@
-// // 
-
 // import 'package:flutter/material.dart';
+// import '../../screens/feed/comment_screen.dart';
 
 // class PostCard extends StatefulWidget {
 //   const PostCard({super.key});
@@ -11,6 +10,13 @@
 
 // class _PostCardState extends State<PostCard> {
 //   bool isLiked = false;
+//   int currentIndex = 0;
+
+//   final List<String> images = [
+//     'https://picsum.photos/500?random=1',
+//     'https://picsum.photos/500?random=2',
+//     'https://picsum.photos/500?random=3',
+//   ];
 
 //   void _toggleLike() {
 //     setState(() {
@@ -18,12 +24,69 @@
 //     });
 //   }
 
+//   void _onDoubleTap() {
+//     setState(() {
+//       isLiked = true;
+//     });
+//   }
+
+//   void _openComments(BuildContext context) {
+//     showModalBottomSheet(
+//       context: context,
+//       isScrollControlled: true,
+//       builder: (_) => const CommentScreen(),
+//     );
+//   }
+
 //   void _onShare(BuildContext context) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       const SnackBar(
-//         content: Text("Đã chia sẻ bài viết ✈️"),
-//         duration: Duration(seconds: 1),
+//     showModalBottomSheet(
+//       context: context,
+//       showDragHandle: true,
+//       shape: const RoundedRectangleBorder(
+//         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
 //       ),
+//       builder: (_) {
+//         return SizedBox(
+//           height: 200,
+//           child: Column(
+//             children: [
+//               const Padding(
+//                 padding: EdgeInsets.all(12),
+//                 child: Text(
+//                   "Chia sẻ đến",
+//                   style: TextStyle(fontWeight: FontWeight.bold),
+//                 ),
+//               ),
+//               Expanded(
+//                 child: ListView(
+//                   scrollDirection: Axis.horizontal,
+//                   padding: const EdgeInsets.all(12),
+//                   children: List.generate(8, (index) {
+//                     return Padding(
+//                       padding: const EdgeInsets.only(right: 12),
+//                       child: Column(
+//                         children: [
+//                           const CircleAvatar(
+//                             radius: 26,
+//                             backgroundImage:
+//                                 NetworkImage('https://i.pravatar.cc/150'),
+//                           ),
+//                           const SizedBox(height: 6),
+//                           Text("user$index"),
+//                         ],
+//                       ),
+//                     );
+//                   }),
+//                 ),
+//               ),
+//               TextButton(
+//                 onPressed: () => Navigator.pop(context),
+//                 child: const Text("Hủy"),
+//               ),
+//             ],
+//           ),
+//         );
+//       },
 //     );
 //   }
 
@@ -33,37 +96,79 @@
 //       crossAxisAlignment: CrossAxisAlignment.start,
 //       children: [
 
-//         // 🔥 HEADER
+//         // 🔥 HEADER (giống IG)
 //         ListTile(
+//           contentPadding: const EdgeInsets.symmetric(horizontal: 10),
 //           leading: const CircleAvatar(
-//             backgroundImage: NetworkImage(
-//               'https://i.pravatar.cc/150?img=3',
-//             ),
+//             radius: 18,
+//             backgroundImage:
+//                 NetworkImage('https://i.pravatar.cc/150?img=3'),
 //           ),
 //           title: const Text(
 //             "username",
-//             style: TextStyle(fontWeight: FontWeight.bold),
+//             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
 //           ),
-//           subtitle: const Text("Some music 🎵"),
-//           trailing: const Icon(Icons.more_vert),
+//           subtitle: const Row(
+//             children: [
+//               Icon(Icons.music_note, size: 12),
+//               SizedBox(width: 4),
+//               Text("Some music", style: TextStyle(fontSize: 12)),
+//             ],
+//           ),
+//           trailing: const Icon(Icons.more_vert, size: 18),
 //         ),
 
 //         // 🔥 IMAGE
 //         GestureDetector(
-//           onDoubleTap: _toggleLike,
-//           child: Image.network(
-//             'https://picsum.photos/500?random=1',
-//             width: double.infinity,
-//             height: 350,
-//             fit: BoxFit.cover,
+//           onDoubleTap: _onDoubleTap,
+//           child: Stack(
+//             alignment: Alignment.bottomCenter,
+//             children: [
+//               SizedBox(
+//                 height: 350,
+//                 width: double.infinity,
+//                 child: PageView.builder(
+//                   itemCount: images.length,
+//                   onPageChanged: (index) {
+//                     setState(() {
+//                       currentIndex = index;
+//                     });
+//                   },
+//                   itemBuilder: (_, index) {
+//                     return Image.network(
+//                       images[index],
+//                       fit: BoxFit.cover,
+//                     );
+//                   },
+//                 ),
+//               ),
+
+//               // 🔥 DOT (giống IG)
+//               Positioned(
+//                 bottom: 10,
+//                 child: Row(
+//                   children: List.generate(images.length, (index) {
+//                     return Container(
+//                       margin: const EdgeInsets.symmetric(horizontal: 3),
+//                       width: 6,
+//                       height: 6,
+//                       decoration: BoxDecoration(
+//                         color: currentIndex == index
+//                             ? Colors.blue
+//                             : Colors.white.withOpacity(0.7),
+//                         shape: BoxShape.circle,
+//                       ),
+//                     );
+//                   }),
+//                 ),
+//               ),
+//             ],
 //           ),
 //         ),
 
-//         const SizedBox(height: 8),
-
-//         // 🔥 ACTION BUTTONS
+//         // 🔥 ACTION BAR
 //         Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 12),
+//           padding: const EdgeInsets.symmetric(horizontal: 4),
 //           child: Row(
 //             children: [
 //               IconButton(
@@ -75,15 +180,13 @@
 //               ),
 //               IconButton(
 //                 icon: const Icon(Icons.mode_comment_outlined),
-//                 onPressed: () {},
+//                 onPressed: () => _openComments(context),
 //               ),
 //               IconButton(
 //                 icon: const Icon(Icons.send_outlined),
 //                 onPressed: () => _onShare(context),
 //               ),
-
 //               const Spacer(),
-
 //               IconButton(
 //                 icon: const Icon(Icons.bookmark_border),
 //                 onPressed: () {},
@@ -92,18 +195,17 @@
 //           ),
 //         ),
 
-//         // 🔥 LIKE COUNT
+//         // 🔥 TEXT
 //         const Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 16),
+//           padding: EdgeInsets.symmetric(horizontal: 12),
 //           child: Text(
 //             "Liked by user123 and others",
-//             style: TextStyle(fontWeight: FontWeight.bold),
+//             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
 //           ),
 //         ),
 
-//         // 🔥 CAPTION
 //         const Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+//           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
 //           child: Text.rich(
 //             TextSpan(
 //               children: [
@@ -118,10 +220,10 @@
 //         ),
 
 //         const Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 16),
+//           padding: EdgeInsets.symmetric(horizontal: 12),
 //           child: Text(
 //             "9 hours ago",
-//             style: TextStyle(color: Colors.grey),
+//             style: TextStyle(color: Colors.grey, fontSize: 11),
 //           ),
 //         ),
 
@@ -167,7 +269,10 @@ class _PostCardState extends State<PostCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const CommentScreen(),
+      backgroundColor: Colors.transparent,
+      builder: (_) => const CommentScreen(
+        postId: 101,
+      ),
     );
   }
 
@@ -176,7 +281,9 @@ class _PostCardState extends State<PostCard> {
       context: context,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
       ),
       builder: (_) {
         return SizedBox(
@@ -187,7 +294,9 @@ class _PostCardState extends State<PostCard> {
                 padding: EdgeInsets.all(12),
                 child: Text(
                   "Chia sẻ đến",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Expanded(
@@ -196,13 +305,16 @@ class _PostCardState extends State<PostCard> {
                   padding: const EdgeInsets.all(12),
                   children: List.generate(8, (index) {
                     return Padding(
-                      padding: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.only(
+                        right: 12,
+                      ),
                       child: Column(
                         children: [
                           const CircleAvatar(
                             radius: 26,
-                            backgroundImage:
-                                NetworkImage('https://i.pravatar.cc/150'),
+                            backgroundImage: NetworkImage(
+                              'https://i.pravatar.cc/150',
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text("user$index"),
@@ -213,7 +325,8 @@ class _PostCardState extends State<PostCard> {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () =>
+                    Navigator.pop(context),
                 child: const Text("Hủy"),
               ),
             ],
@@ -226,36 +339,55 @@ class _PostCardState extends State<PostCard> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
-
-        // 🔥 HEADER (giống IG)
+        // HEADER
         ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+          contentPadding:
+              const EdgeInsets.symmetric(
+            horizontal: 10,
+          ),
           leading: const CircleAvatar(
             radius: 18,
-            backgroundImage:
-                NetworkImage('https://i.pravatar.cc/150?img=3'),
+            backgroundImage: NetworkImage(
+              'https://i.pravatar.cc/150?img=3',
+            ),
           ),
           title: const Text(
             "username",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
           subtitle: const Row(
             children: [
-              Icon(Icons.music_note, size: 12),
+              Icon(
+                Icons.music_note,
+                size: 12,
+              ),
               SizedBox(width: 4),
-              Text("Some music", style: TextStyle(fontSize: 12)),
+              Text(
+                "Some music",
+                style: TextStyle(
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
-          trailing: const Icon(Icons.more_vert, size: 18),
+          trailing: const Icon(
+            Icons.more_vert,
+            size: 18,
+          ),
         ),
 
-        // 🔥 IMAGE
+        // IMAGE
         GestureDetector(
           onDoubleTap: _onDoubleTap,
           child: Stack(
-            alignment: Alignment.bottomCenter,
+            alignment:
+                Alignment.bottomCenter,
             children: [
               SizedBox(
                 height: 350,
@@ -264,7 +396,8 @@ class _PostCardState extends State<PostCard> {
                   itemCount: images.length,
                   onPageChanged: (index) {
                     setState(() {
-                      currentIndex = index;
+                      currentIndex =
+                          index;
                     });
                   },
                   itemBuilder: (_, index) {
@@ -276,87 +409,144 @@ class _PostCardState extends State<PostCard> {
                 ),
               ),
 
-              // 🔥 DOT (giống IG)
               Positioned(
                 bottom: 10,
                 child: Row(
-                  children: List.generate(images.length, (index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: currentIndex == index
-                            ? Colors.blue
-                            : Colors.white.withOpacity(0.7),
-                        shape: BoxShape.circle,
-                      ),
-                    );
-                  }),
+                  children: List.generate(
+                    images.length,
+                    (index) {
+                      return Container(
+                        margin:
+                            const EdgeInsets.symmetric(
+                          horizontal: 3,
+                        ),
+                        width: 6,
+                        height: 6,
+                        decoration:
+                            BoxDecoration(
+                          color:
+                              currentIndex ==
+                                      index
+                                  ? Colors.blue
+                                  : Colors
+                                      .white
+                                      .withOpacity(
+                                        0.7,
+                                      ),
+                          shape:
+                              BoxShape.circle,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
           ),
         ),
 
-        // 🔥 ACTION BAR
+        // ACTION BAR
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 4,
+          ),
           child: Row(
             children: [
               IconButton(
                 icon: Icon(
-                  isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: isLiked ? Colors.red : Colors.black,
+                  isLiked
+                      ? Icons.favorite
+                      : Icons
+                          .favorite_border,
+                  color: isLiked
+                      ? Colors.red
+                      : Colors.black,
                 ),
                 onPressed: _toggleLike,
               ),
               IconButton(
-                icon: const Icon(Icons.mode_comment_outlined),
-                onPressed: () => _openComments(context),
+                icon: const Icon(
+                  Icons
+                      .mode_comment_outlined,
+                ),
+                onPressed: () =>
+                    _openComments(
+                  context,
+                ),
               ),
               IconButton(
-                icon: const Icon(Icons.send_outlined),
-                onPressed: () => _onShare(context),
+                icon: const Icon(
+                  Icons.send_outlined,
+                ),
+                onPressed: () =>
+                    _onShare(context),
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.bookmark_border),
+                icon: const Icon(
+                  Icons.bookmark_border,
+                ),
                 onPressed: () {},
               ),
             ],
           ),
         ),
 
-        // 🔥 TEXT
+        // LIKE
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+          padding:
+              EdgeInsets.symmetric(
+            horizontal: 12,
+          ),
           child: Text(
             "Liked by user123 and others",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              fontWeight:
+                  FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
         ),
 
+        // CAPTION
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding:
+              EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 4,
+          ),
           child: Text.rich(
             TextSpan(
               children: [
                 TextSpan(
                   text: "username ",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
                 ),
-                TextSpan(text: "This is a caption"),
+                TextSpan(
+                  text:
+                      "This is a caption",
+                ),
               ],
             ),
           ),
         ),
 
+        // TIME
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+          padding:
+              EdgeInsets.symmetric(
+            horizontal: 12,
+          ),
           child: Text(
             "9 hours ago",
-            style: TextStyle(color: Colors.grey, fontSize: 11),
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 11,
+            ),
           ),
         ),
 
