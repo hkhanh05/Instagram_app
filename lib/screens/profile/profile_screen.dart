@@ -85,11 +85,15 @@ List<Map<String, dynamic>> followingFromFirebase = [];
 
     final currentUser = FirebaseAuth.instance.currentUser;
 
-    if (currentUser != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+    final profileUid =
+    widget.firebaseUid ??
+    FirebaseAuth.instance.currentUser?.uid;
+
+if (profileUid != null) {
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(profileUid)
+      .get();
 
       if (doc.exists) {
         userMap = doc.data();
