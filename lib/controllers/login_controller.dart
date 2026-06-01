@@ -2,7 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/user_model.dart';
 import '../core/utils/helpers.dart';
-
+import '../core/constants/current_user.dart';
 import 'package:sqflite/sqflite.dart';
 
 class LoginController {
@@ -80,8 +80,14 @@ class LoginController {
         );
 
         if (maps.isNotEmpty) {
-          // Trả về Object User đầy đủ thông tin từ SQL
-          return User.fromMap(maps.first);
+          final user = User.fromMap(maps.first);
+
+          CurrentUser.id = user.id;
+          CurrentUser.email = user.email;
+          CurrentUser.username = user.username;
+          CurrentUser.name = user.name;
+
+          return user;
         } else {
           // Trường hợp hiếm: Có trên Firebase nhưng SQLite local chưa có (ví dụ đổi máy ảo khác)
           return User(email: email, password: password, name: "Instagram User");

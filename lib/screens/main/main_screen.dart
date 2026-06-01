@@ -4,7 +4,8 @@ import '../feed/feed_screen.dart';
 import '../search/search_screen.dart';
 import '../message/message_screen.dart';
 import '../profile/profile_screen.dart';
-import '../post/camera_screen.dart';
+// import '../post/camera_screen.dart';
+import '../post/create_post_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final String? firebaseUid;
@@ -28,18 +29,17 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
 
     _screens = [
-      const FeedScreen(),
-      const SearchScreen(),
+        const FeedScreen(),
+        const SearchScreen(),
 
-      // TAB POST
-      const CameraScreen(),
+        const CreatePostScreen(),
 
-      const MessageScreen(),
+        const MessageScreen(),
 
-      ProfileScreen(
-        firebaseUid: widget.firebaseUid,
-      ),
-    ];
+        ProfileScreen(
+          firebaseUid: widget.firebaseUid,
+        ),
+      ];
   }
 
   @override
