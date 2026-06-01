@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/message/chat_item.dart';
+import '../ai/meta_ai_chat_screen.dart';
 import '../settings/settings_screen.dart';
 import 'account_management_screen.dart';
 import 'chat_screen.dart';
-import 'message_search_screen.dart';
 import 'pending_messages_screen.dart';
 
 class MessageScreen extends StatelessWidget {
@@ -81,14 +81,13 @@ class MessageScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const MessageSearchScreen(),
+                      builder: (_) => const MetaAiChatScreen(),
                     ),
                   );
                 },
               ),
             ),
           ),
-
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
@@ -125,7 +124,6 @@ class MessageScreen extends StatelessWidget {
               ),
             ),
           ),
-
           SliverToBoxAdapter(
             child: ChatItem(
               avatarUrl: '',
@@ -146,7 +144,6 @@ class MessageScreen extends StatelessWidget {
               },
             ),
           ),
-
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
         ],
       ),

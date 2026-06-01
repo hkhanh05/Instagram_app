@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../message/chat_screen.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+String createChatId(String uid1, String uid2) {
+  final ids = [uid1, uid2]..sort();
+  return ids.join('_');
+}
 class InstagramFollowScreen extends StatelessWidget {
   final int initialIndex;
   final String username;
@@ -280,7 +284,7 @@ Widget _buildUserTile({
   String avatarUrl = userData['avatarUrl'] ?? '';
   String username = userData['username'] ?? '';
   String fullName = userData['fullName'] ?? '';
-
+  print(userData);
   return ListTile(
     leading: CircleAvatar(
       radius: 26,
@@ -342,18 +346,35 @@ Widget _buildUserTile({
           height: 32,
           child: OutlinedButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatScreen(
-  chatId: 'chat_${username}',
-  opponentUsername: username,
-  opponentName: fullName,
-  opponentAvatarUrl: avatarUrl,
-),
+            final currentUid = FirebaseAuth.instance.currentUser?.uid;
+            final otherUid = userData['uid'];
+
+            if (currentUid == null || otherUid == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Không tìm thấy UID người dùng'),
                 ),
               );
-            },
+              return;
+            }
+
+            final chatId = createChatId(
+              currentUid,
+              otherUid.toString(),
+            );
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChatScreen(
+                  chatId: chatId,
+                  opponentUsername: username,
+                  opponentName: fullName,
+                  opponentAvatarUrl: avatarUrl,
+                ),
+              ),
+            );
+          },
             style: OutlinedButton.styleFrom(
               side: BorderSide(
                 color: Colors.grey.shade300,
