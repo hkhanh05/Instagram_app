@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/auth/splash_screen.dart'; 
+import 'screens/auth/splash_screen.dart';
 
 void main() async {
   // Bắt buộc phải thêm dòng này khi chạy bất đồng bộ trong main
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Khởi tạo các dịch vụ Firebase
-  await Firebase.initializeApp(); 
-  
+  await Firebase.initializeApp();
+
   runApp(const MyApp());
 }
 
