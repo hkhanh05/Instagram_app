@@ -345,7 +345,12 @@ Widget _buildUserTile({
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const ChatScreen(),
+                  builder: (_) => ChatScreen(
+  chatId: 'chat_${username}',
+  opponentUsername: username,
+  opponentName: fullName,
+  opponentAvatarUrl: avatarUrl,
+),
                 ),
               );
             },
