@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../controllers/profile_controller.dart';
-import '../../models/profile_model.dart';
-import '../../services/fake_data_service.dart';
 
 class InstagramFollowScreen extends StatelessWidget {
   final int initialIndex;
-  final String username; 
-  final List<Map<String, dynamic>> followersList; // 🔥 Thay thế cho followersCount tĩnh
-  final List<Map<String, dynamic>> followingList; // 🔥 Thay thế cho followingCount tĩnh
+  final String username;
+  final List<Map<String, dynamic>> followersList;
+  final List<Map<String, dynamic>> followingList;
 
   const InstagramFollowScreen({
     super.key,
@@ -38,8 +35,11 @@ class InstagramFollowScreen extends StatelessWidget {
               const Icon(Icons.lock_outline, size: 18, color: Colors.black),
               const SizedBox(width: 8),
               Text(
-                username, 
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+                username,
+                style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18),
               ),
               const Icon(Icons.keyboard_arrow_down, color: Colors.black),
             ],
@@ -51,7 +51,7 @@ class InstagramFollowScreen extends StatelessWidget {
             indicatorWeight: 1.5,
             tabs: [
               Tab(text: "${followersList.length} Người theo dõi"),
-              Tab(text: "${followingList.length} Đang theo dõi"), 
+              Tab(text: "${followingList.length} Đang theo dõi"),
             ],
           ),
         ),
@@ -67,27 +67,28 @@ class InstagramFollowScreen extends StatelessWidget {
 }
 
 // =========================================================================
-// FOLLOWER TAB - KHÔNG CÒN DỮ LIỆU TĨNH
+// FOLLOWER TAB
 // =========================================================================
 class FollowerTabContent extends StatefulWidget {
   final List<Map<String, dynamic>> users;
   final String username;
 
-  const FollowerTabContent({super.key, required this.users, required this.username});
+  const FollowerTabContent(
+      {super.key, required this.users, required this.username});
 
   @override
   State<FollowerTabContent> createState() => _FollowerTabContentState();
 }
 
 class _FollowerTabContentState extends State<FollowerTabContent> {
-  // Quản lý trạng thái theo dõi dựa trên ID duy nhất của User trong DB
   final Map<int, bool> _followStatusMap = {};
 
   @override
   Widget build(BuildContext context) {
     if (widget.users.isEmpty) {
       return const Center(
-        child: Text("Không có người theo dõi nào", style: TextStyle(color: Colors.grey)),
+        child: Text("Không có người theo dõi nào",
+            style: TextStyle(color: Colors.grey)),
       );
     }
 
@@ -96,14 +97,12 @@ class _FollowerTabContentState extends State<FollowerTabContent> {
         _buildSearchBar(),
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 10, bottom: 10),
-          child: Text(
-            "Hạng mục",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
+          child: Text("Hạng mục",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ),
         _buildCategoryItem(
           "Người theo dõi mà bạn không theo dõi lại",
-          "Các tài khoản chưa tương tác chéo với ${widget.username}", 
+          "Các tài khoản chưa tương tác chéo với ${widget.username}",
           Icons.group_remove_outlined,
         ),
         _buildCategoryItem(
@@ -114,21 +113,19 @@ class _FollowerTabContentState extends State<FollowerTabContent> {
         const Divider(),
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 10, bottom: 10),
-          child: Text(
-            "Tất cả người theo dõi",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
+          child: Text("Tất cả người theo dõi",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ),
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: widget.users.length, 
+          itemCount: widget.users.length,
           itemBuilder: (context, index) {
             final user = widget.users[index];
             int userId = user['id'] ?? index;
-            
-            // Đọc trạng thái follow thực tế từ trường dữ liệu của DB (ví dụ: isFollowing)
-            bool isFollowingBack = _followStatusMap[userId] ?? (user['isFollowing'] == 1);
+
+            bool isFollowingBack =
+                _followStatusMap[userId] ?? (user['isFollowing'] == 1);
 
             return _buildUserTile(
               userData: user,
@@ -138,7 +135,7 @@ class _FollowerTabContentState extends State<FollowerTabContent> {
                 setState(() {
                   _followStatusMap[userId] = !isFollowingBack;
                 });
-                // To-Do: Bạn có thể gọi thêm Controller để cập nhật trạng thái xuống SQLite tại đây
+                // To-Do: Bạn có thể gọi thêm Firebase Firestore để cập nhật trạng thái follow thực tế tại đây
               },
             );
           },
@@ -149,7 +146,7 @@ class _FollowerTabContentState extends State<FollowerTabContent> {
 }
 
 // =========================================================================
-// FOLLOWING TAB - ĐÃ SẠCH DỮ LIỆU TĨNH
+// FOLLOWING TAB
 // =========================================================================
 class FollowingTabContent extends StatefulWidget {
   final List<Map<String, dynamic>> users;
@@ -166,7 +163,8 @@ class _FollowingTabContentState extends State<FollowingTabContent> {
   Widget build(BuildContext context) {
     if (widget.users.isEmpty) {
       return const Center(
-        child: Text("Bạn chưa theo dõi ai", style: TextStyle(color: Colors.grey)),
+        child:
+            Text("Bạn chưa theo dõi ai", style: TextStyle(color: Colors.grey)),
       );
     }
 
@@ -177,43 +175,39 @@ class _FollowingTabContentState extends State<FollowingTabContent> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.shade300),
-            ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300)),
             child: const Icon(Icons.contact_page_outlined, color: Colors.black),
           ),
-          title: const Text(
-            "Kết nối người liên hệ",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          title: const Text("Kết nối người liên hệ",
+              style: TextStyle(fontWeight: FontWeight.bold)),
           subtitle: const Text("Tìm những người mà bạn biết"),
           trailing: ElevatedButton(
             onPressed: () {},
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, elevation: 0),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue, elevation: 0),
             child: const Text("Kết nối", style: TextStyle(color: Colors.white)),
           ),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          child: Text(
-            "Sắp xếp theo Mặc định",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          child: Text("Sắp xếp theo Mặc định",
+              style: TextStyle(fontWeight: FontWeight.bold)),
         ),
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: widget.users.length, 
+          itemCount: widget.users.length,
           itemBuilder: (context, index) {
             final user = widget.users[index];
             int userId = user['id'] ?? index;
-            
+
             bool isUnfollowed = _unfollowStatusMap[userId] ?? false;
 
             return _buildUserTile(
               userData: user,
               isFollowerTab: false,
-              isButtonActive: isUnfollowed, 
+              isButtonActive: isUnfollowed,
               onButtonPressed: () {
                 setState(() {
                   _unfollowStatusMap[userId] = !isUnfollowed;
@@ -228,18 +222,15 @@ class _FollowingTabContentState extends State<FollowingTabContent> {
 }
 
 // =========================================================================
-// WIDGET THÀNH PHẦN HOÀN TOÀN ĐỘNG
+// WIDGET THÀNH PHẦN
 // =========================================================================
-
 Widget _buildSearchBar() {
   return Padding(
     padding: const EdgeInsets.all(16),
     child: Container(
       height: 38,
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(10),
-      ),
+          color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
       child: const TextField(
         decoration: InputDecoration(
           hintText: "Tìm kiếm",
@@ -259,9 +250,8 @@ Widget _buildCategoryItem(String title, String sub, IconData icon) {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade300),
-        ),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.grey.shade300)),
         child: Icon(icon, color: Colors.black, size: 20),
       ),
     ),
@@ -270,7 +260,6 @@ Widget _buildCategoryItem(String title, String sub, IconData icon) {
   );
 }
 
-// USER TILE ĐỘNG ĐÃ KHỬ TOÀN BỘ CHUỖI VÀ ẢNH MẶC ĐỊNH TĨNH
 Widget _buildUserTile({
   required Map<String, dynamic> userData,
   required bool isFollowerTab,
@@ -293,44 +282,40 @@ Widget _buildUserTile({
       radius: 26,
       backgroundColor: Colors.grey[200],
       backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-      child: avatarUrl.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+      child: avatarUrl.isEmpty
+          ? const Icon(Icons.person, color: Colors.grey)
+          : null,
     ),
-    title: Text(
-      username,
-      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-    ),
-    subtitle: Text(
-      fullName,
-      style: const TextStyle(color: Colors.grey, fontSize: 13),
-    ),
+    title: Text(username,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+    subtitle: Text(fullName,
+        style: const TextStyle(color: Colors.grey, fontSize: 13)),
     trailing: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
           height: 30,
           child: OutlinedButton(
-            onPressed: onButtonPressed, 
+            onPressed: onButtonPressed,
             style: OutlinedButton.styleFrom(
               backgroundColor: isButtonActive ? Colors.blue : Colors.grey[100],
-              side: BorderSide(color: isButtonActive ? Colors.blue : Colors.grey.shade300),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              side: BorderSide(
+                  color: isButtonActive ? Colors.blue : Colors.grey.shade300),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(
-              buttonText, 
+              buttonText,
               style: TextStyle(
-                color: isButtonActive ? Colors.white : Colors.black,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
+                  color: isButtonActive ? Colors.white : Colors.black,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold),
             ),
           ),
         ),
         const SizedBox(width: 8),
-        Icon(
-          isFollowerTab ? Icons.close : Icons.more_vert,
-          color: Colors.grey,
-          size: 20,
-        ),
+        Icon(isFollowerTab ? Icons.close : Icons.more_vert,
+            color: Colors.grey, size: 20),
       ],
     ),
   );
