@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/post_provider.dart';
@@ -14,189 +16,138 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState
     extends State<CreatePostScreen> {
+  File? selectedImage;
+
   final TextEditingController captionController =
       TextEditingController();
 
+  final ImagePicker picker = ImagePicker();
+
+  bool showCaptionScreen = false;
+
   @override
-  void dispose() {
-    captionController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      pickImage();
+    });
+  }
+
+  Future<void> pickImage() async {
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      setState(() {
+        selectedImage = File(image.path);
+      });
+    }
+  }
+
+  Future<void> sharePost() async {
+    if (selectedImage == null) return;
+
+    await Provider.of<PostProvider>(
+      context,
+      listen: false,
+    ).createPost(
+      imageUrl: selectedImage!.path,
+      caption: captionController.text,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Đăng bài thành công"),
+      ),
+    );
+
+    captionController.clear();
+
+    setState(() {
+      showCaptionScreen = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final String? imagePath =
-        ModalRoute.of(context)?.settings.arguments
-            as String?;
+    if (showCaptionScreen) {
+      return buildCaptionScreen();
+    }
 
+    return buildSelectImageScreen();
+  }
+
+  Widget buildSelectImageScreen() {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: SafeArea(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: imagePath == null
-                    ? Container(
-                        color: Colors.black,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            color: Colors.white,
-                            size: 120,
-                          ),
-                        ),
-                      )
-                    : Image.file(
-                        File(imagePath),
-                        fit: BoxFit.cover,
-                      ),
-              ),
-            ),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text(
+          "New post",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
           ),
-
-          // Nút đóng
-          Positioned(
-            top: 60,
-            left: 20,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: CircleAvatar(
-                backgroundColor:
-                    Colors.black.withOpacity(0.4),
-                radius: 20,
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-          ),
-
-          // Menu bên phải
-          Positioned(
-            top: 60,
-            right: 20,
-            child: Column(
-              children: [
-                _buildRightActionButton(
-                  Icons.text_fields,
-                  "Aa",
-                ),
-                _buildRightActionButton(
-                  Icons.sticky_note_2_outlined,
-                  null,
-                ),
-                _buildRightActionButton(
-                  Icons.music_note,
-                  null,
-                ),
-                _buildRightActionButton(
-                  Icons.auto_awesome,
-                  null,
-                ),
-                _buildRightActionButton(
-                  Icons.keyboard_arrow_down,
-                  null,
-                ),
-              ],
-            ),
-          ),
-
-          // Caption
-          Positioned(
-            bottom: 110,
-            left: 24,
-            right: 24,
-            child: TextField(
-              controller: captionController,
-              style: const TextStyle(
-                color: Colors.white,
+        ),
+        actions: [
+          TextButton(
+            onPressed: selectedImage == null
+                ? null
+                : () {
+                    setState(() {
+                      showCaptionScreen = true;
+                    });
+                  },
+            child: const Text(
+              "Next",
+              style: TextStyle(
+                color: Colors.blue,
                 fontSize: 16,
               ),
-              decoration: InputDecoration(
-                hintText: 'Thêm chú thích...',
-                hintStyle: TextStyle(
-                  color:
-                      Colors.white.withOpacity(0.8),
-                ),
-                border: InputBorder.none,
-              ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 6,
+            child: Container(
+              width: double.infinity,
+              color: Colors.black,
+              child: selectedImage == null
+                  ? const Center(
+                      child: Icon(
+                        Icons.image,
+                        size: 100,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Image.file(
+                      selectedImage!,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
 
-          // Thanh dưới
-          Positioned(
-            bottom: 30,
-            left: 16,
-            right: 16,
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildBottomButton(
-                    icon: Icons.person_pin,
-                    label: 'Tin của bạn',
-                    onPressed: () {},
+          Expanded(
+            flex: 4,
+            child: Container(
+              color: Colors.black,
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: pickImage,
+                  icon: const Icon(Icons.photo),
+                  label: const Text(
+                    "Chọn ảnh khác",
                   ),
                 ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: _buildBottomButton(
-                    icon: Icons.star,
-                    label: 'Bạn thân',
-                    iconColor: Colors.green,
-                    onPressed: () {},
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                GestureDetector(
-                  onTap: () async {
-                    if (imagePath == null) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Vui lòng chọn ảnh',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    final provider =
-                        Provider.of<PostProvider>(
-                      context,
-                      listen: false,
-                    );
-
-                    await provider.createPost(
-                      imageUrl: imagePath,
-                      caption:
-                          captionController.text,
-                    );
-
-                    if (mounted) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const CircleAvatar(
-                    radius: 26,
-                    backgroundColor:
-                        Colors.indigoAccent,
-                    child: Icon(
-                      Icons.arrow_forward,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -204,76 +155,54 @@ class _CreatePostScreenState
     );
   }
 
-  Widget _buildRightActionButton(
-    IconData icon,
-    String? customText,
-  ) {
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(vertical: 8),
-      child: CircleAvatar(
-        radius: 22,
-        backgroundColor:
-            Colors.black.withOpacity(0.4),
-        child: customText != null
-            ? Text(
-                customText,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight:
-                      FontWeight.bold,
-                  fontSize: 16,
-                ),
-              )
-            : Icon(
-                icon,
-                color: Colors.white,
-                size: 22,
+  Widget buildCaptionScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("New post"),
+        actions: [
+          TextButton(
+            onPressed: sharePost,
+            child: const Text(
+              "Share",
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (selectedImage != null)
+            SizedBox(
+              height: 250,
+              width: double.infinity,
+              child: Image.file(
+                selectedImage!,
+                fit: BoxFit.cover,
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: captionController,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                hintText: "Write a caption...",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBottomButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    Color iconColor = Colors.white,
-  }) {
-    return SizedBox(
-      height: 50,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              Colors.white.withOpacity(0.15),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(25),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: iconColor,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    captionController.dispose();
+    super.dispose();
   }
 }

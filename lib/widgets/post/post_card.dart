@@ -1,243 +1,17 @@
-// import 'package:flutter/material.dart';
-// import '../../screens/feed/comment_screen.dart';
-
-// class PostCard extends StatefulWidget {
-//   const PostCard({super.key});
-
-//   @override
-//   State<PostCard> createState() => _PostCardState();
-// }
-
-// class _PostCardState extends State<PostCard> {
-//   bool isLiked = false;
-//   int currentIndex = 0;
-
-//   final List<String> images = [
-//     'https://picsum.photos/500?random=1',
-//     'https://picsum.photos/500?random=2',
-//     'https://picsum.photos/500?random=3',
-//   ];
-
-//   void _toggleLike() {
-//     setState(() {
-//       isLiked = !isLiked;
-//     });
-//   }
-
-//   void _onDoubleTap() {
-//     setState(() {
-//       isLiked = true;
-//     });
-//   }
-
-//   void _openComments(BuildContext context) {
-//     showModalBottomSheet(
-//       context: context,
-//       isScrollControlled: true,
-//       builder: (_) => const CommentScreen(),
-//     );
-//   }
-
-//   void _onShare(BuildContext context) {
-//     showModalBottomSheet(
-//       context: context,
-//       showDragHandle: true,
-//       shape: const RoundedRectangleBorder(
-//         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-//       ),
-//       builder: (_) {
-//         return SizedBox(
-//           height: 200,
-//           child: Column(
-//             children: [
-//               const Padding(
-//                 padding: EdgeInsets.all(12),
-//                 child: Text(
-//                   "Chia sẻ đến",
-//                   style: TextStyle(fontWeight: FontWeight.bold),
-//                 ),
-//               ),
-//               Expanded(
-//                 child: ListView(
-//                   scrollDirection: Axis.horizontal,
-//                   padding: const EdgeInsets.all(12),
-//                   children: List.generate(8, (index) {
-//                     return Padding(
-//                       padding: const EdgeInsets.only(right: 12),
-//                       child: Column(
-//                         children: [
-//                           const CircleAvatar(
-//                             radius: 26,
-//                             backgroundImage:
-//                                 NetworkImage('https://i.pravatar.cc/150'),
-//                           ),
-//                           const SizedBox(height: 6),
-//                           Text("user$index"),
-//                         ],
-//                       ),
-//                     );
-//                   }),
-//                 ),
-//               ),
-//               TextButton(
-//                 onPressed: () => Navigator.pop(context),
-//                 child: const Text("Hủy"),
-//               ),
-//             ],
-//           ),
-//         );
-//       },
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-
-//         // 🔥 HEADER (giống IG)
-//         ListTile(
-//           contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-//           leading: const CircleAvatar(
-//             radius: 18,
-//             backgroundImage:
-//                 NetworkImage('https://i.pravatar.cc/150?img=3'),
-//           ),
-//           title: const Text(
-//             "username",
-//             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-//           ),
-//           subtitle: const Row(
-//             children: [
-//               Icon(Icons.music_note, size: 12),
-//               SizedBox(width: 4),
-//               Text("Some music", style: TextStyle(fontSize: 12)),
-//             ],
-//           ),
-//           trailing: const Icon(Icons.more_vert, size: 18),
-//         ),
-
-//         // 🔥 IMAGE
-//         GestureDetector(
-//           onDoubleTap: _onDoubleTap,
-//           child: Stack(
-//             alignment: Alignment.bottomCenter,
-//             children: [
-//               SizedBox(
-//                 height: 350,
-//                 width: double.infinity,
-//                 child: PageView.builder(
-//                   itemCount: images.length,
-//                   onPageChanged: (index) {
-//                     setState(() {
-//                       currentIndex = index;
-//                     });
-//                   },
-//                   itemBuilder: (_, index) {
-//                     return Image.network(
-//                       images[index],
-//                       fit: BoxFit.cover,
-//                     );
-//                   },
-//                 ),
-//               ),
-
-//               // 🔥 DOT (giống IG)
-//               Positioned(
-//                 bottom: 10,
-//                 child: Row(
-//                   children: List.generate(images.length, (index) {
-//                     return Container(
-//                       margin: const EdgeInsets.symmetric(horizontal: 3),
-//                       width: 6,
-//                       height: 6,
-//                       decoration: BoxDecoration(
-//                         color: currentIndex == index
-//                             ? Colors.blue
-//                             : Colors.white.withOpacity(0.7),
-//                         shape: BoxShape.circle,
-//                       ),
-//                     );
-//                   }),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-
-//         // 🔥 ACTION BAR
-//         Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 4),
-//           child: Row(
-//             children: [
-//               IconButton(
-//                 icon: Icon(
-//                   isLiked ? Icons.favorite : Icons.favorite_border,
-//                   color: isLiked ? Colors.red : Colors.black,
-//                 ),
-//                 onPressed: _toggleLike,
-//               ),
-//               IconButton(
-//                 icon: const Icon(Icons.mode_comment_outlined),
-//                 onPressed: () => _openComments(context),
-//               ),
-//               IconButton(
-//                 icon: const Icon(Icons.send_outlined),
-//                 onPressed: () => _onShare(context),
-//               ),
-//               const Spacer(),
-//               IconButton(
-//                 icon: const Icon(Icons.bookmark_border),
-//                 onPressed: () {},
-//               ),
-//             ],
-//           ),
-//         ),
-
-//         // 🔥 TEXT
-//         const Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 12),
-//           child: Text(
-//             "Liked by user123 and others",
-//             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-//           ),
-//         ),
-
-//         const Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-//           child: Text.rich(
-//             TextSpan(
-//               children: [
-//                 TextSpan(
-//                   text: "username ",
-//                   style: TextStyle(fontWeight: FontWeight.bold),
-//                 ),
-//                 TextSpan(text: "This is a caption"),
-//               ],
-//             ),
-//           ),
-//         ),
-
-//         const Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 12),
-//           child: Text(
-//             "9 hours ago",
-//             style: TextStyle(color: Colors.grey, fontSize: 11),
-//           ),
-//         ),
-
-//         const SizedBox(height: 12),
-//       ],
-//     );
-//   }
-// }
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../../models/post_model.dart';
 import '../../screens/feed/comment_screen.dart';
 
 class PostCard extends StatefulWidget {
-  const PostCard({super.key});
+  final PostModel post;
+
+  const PostCard({
+    super.key,
+    required this.post,
+  });
 
   @override
   State<PostCard> createState() => _PostCardState();
@@ -245,23 +19,10 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   bool isLiked = false;
-  int currentIndex = 0;
-
-  final List<String> images = [
-    'https://picsum.photos/500?random=1',
-    'https://picsum.photos/500?random=2',
-    'https://picsum.photos/500?random=3',
-  ];
 
   void _toggleLike() {
     setState(() {
       isLiked = !isLiked;
-    });
-  }
-
-  void _onDoubleTap() {
-    setState(() {
-      isLiked = true;
     });
   }
 
@@ -270,8 +31,8 @@ class _PostCardState extends State<PostCard> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const CommentScreen(
-        postId: 101,
+      builder: (_) => CommentScreen(
+        postId: widget.post.id ?? 0,
       ),
     );
   }
@@ -287,7 +48,7 @@ class _PostCardState extends State<PostCard> {
       ),
       builder: (_) {
         return SizedBox(
-          height: 200,
+          height: 220,
           child: Column(
             children: [
               const Padding(
@@ -300,19 +61,20 @@ class _PostCardState extends State<PostCard> {
                 ),
               ),
               Expanded(
-                child: ListView(
+                child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.all(12),
-                  children: List.generate(8, (index) {
+                  itemCount: 10,
+                  itemBuilder: (_, index) {
                     return Padding(
-                      padding: const EdgeInsets.only(
-                        right: 12,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
                       ),
                       child: Column(
                         children: [
                           const CircleAvatar(
-                            radius: 26,
-                            backgroundImage: NetworkImage(
+                            radius: 28,
+                            backgroundImage:
+                                NetworkImage(
                               'https://i.pravatar.cc/150',
                             ),
                           ),
@@ -321,18 +83,33 @@ class _PostCardState extends State<PostCard> {
                         ],
                       ),
                     );
-                  }),
+                  },
                 ),
-              ),
-              TextButton(
-                onPressed: () =>
-                    Navigator.pop(context),
-                child: const Text("Hủy"),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget buildPostImage() {
+    final image = widget.post.imageUrl;
+
+    if (image.startsWith('/')) {
+      return Image.file(
+        File(image),
+        width: double.infinity,
+        height: 450,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Image.network(
+      image,
+      width: double.infinity,
+      height: 450,
+      fit: BoxFit.cover,
     );
   }
 
@@ -344,213 +121,127 @@ class _PostCardState extends State<PostCard> {
       children: [
         // HEADER
         ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(
-            horizontal: 10,
-          ),
           leading: const CircleAvatar(
-            radius: 18,
             backgroundImage: NetworkImage(
               'https://i.pravatar.cc/150?img=3',
             ),
           ),
           title: const Text(
-            "username",
+            "khanh",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
           ),
-          subtitle: const Row(
-            children: [
-              Icon(
-                Icons.music_note,
-                size: 12,
-              ),
-              SizedBox(width: 4),
-              Text(
-                "Some music",
-                style: TextStyle(
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
           trailing: const Icon(
             Icons.more_vert,
-            size: 18,
           ),
         ),
 
         // IMAGE
         GestureDetector(
-          onDoubleTap: _onDoubleTap,
-          child: Stack(
-            alignment:
-                Alignment.bottomCenter,
-            children: [
-              SizedBox(
-                height: 350,
-                width: double.infinity,
-                child: PageView.builder(
-                  itemCount: images.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      currentIndex =
-                          index;
-                    });
-                  },
-                  itemBuilder: (_, index) {
-                    return Image.network(
-                      images[index],
-                      fit: BoxFit.cover,
-                    );
-                  },
-                ),
-              ),
-
-              Positioned(
-                bottom: 10,
-                child: Row(
-                  children: List.generate(
-                    images.length,
-                    (index) {
-                      return Container(
-                        margin:
-                            const EdgeInsets.symmetric(
-                          horizontal: 3,
-                        ),
-                        width: 6,
-                        height: 6,
-                        decoration:
-                            BoxDecoration(
-                          color:
-                              currentIndex ==
-                                      index
-                                  ? Colors.blue
-                                  : Colors
-                                      .white
-                                      .withOpacity(
-                                        0.7,
-                                      ),
-                          shape:
-                              BoxShape.circle,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
+          onDoubleTap: _toggleLike,
+          child: buildPostImage(),
         ),
 
-        // ACTION BAR
+        // ACTIONS
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(
+                isLiked
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: isLiked
+                    ? Colors.red
+                    : Colors.black,
+              ),
+              onPressed: _toggleLike,
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.mode_comment_outlined,
+              ),
+              onPressed: () =>
+                  _openComments(context),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.send_outlined,
+              ),
+              onPressed: () =>
+                  _onShare(context),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(
+                Icons.bookmark_border,
+              ),
+              onPressed: () {},
+            ),
+          ],
+        ),
+
+        // LIKES
         Padding(
           padding:
               const EdgeInsets.symmetric(
-            horizontal: 4,
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  isLiked
-                      ? Icons.favorite
-                      : Icons
-                          .favorite_border,
-                  color: isLiked
-                      ? Colors.red
-                      : Colors.black,
-                ),
-                onPressed: _toggleLike,
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons
-                      .mode_comment_outlined,
-                ),
-                onPressed: () =>
-                    _openComments(
-                  context,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.send_outlined,
-                ),
-                onPressed: () =>
-                    _onShare(context),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_border,
-                ),
-                onPressed: () {},
-              ),
-            ],
-          ),
-        ),
-
-        // LIKE
-        const Padding(
-          padding:
-              EdgeInsets.symmetric(
             horizontal: 12,
           ),
           child: Text(
-            "Liked by user123 and others",
-            style: TextStyle(
-              fontWeight:
-                  FontWeight.bold,
-              fontSize: 13,
+            "${widget.post.likesCount} likes",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
 
+        const SizedBox(height: 4),
+
         // CAPTION
-        const Padding(
+        Padding(
           padding:
-              EdgeInsets.symmetric(
+              const EdgeInsets.symmetric(
             horizontal: 12,
-            vertical: 4,
           ),
-          child: Text.rich(
-            TextSpan(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                color: Colors.black,
+              ),
               children: [
-                TextSpan(
-                  text: "username ",
+                const TextSpan(
+                  text: "khanh ",
                   style: TextStyle(
                     fontWeight:
                         FontWeight.bold,
                   ),
                 ),
                 TextSpan(
-                  text:
-                      "This is a caption",
+                  text: widget.post.caption,
                 ),
               ],
             ),
           ),
         ),
 
-        // TIME
+        const SizedBox(height: 6),
+
         const Padding(
           padding:
               EdgeInsets.symmetric(
             horizontal: 12,
           ),
           child: Text(
-            "9 hours ago",
+            "Vừa xong",
             style: TextStyle(
               color: Colors.grey,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
       ],
     );
   }
