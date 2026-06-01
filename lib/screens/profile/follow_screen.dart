@@ -338,6 +338,7 @@
 
 //         const SizedBox(width: 8),
 
+<<<<<<< HEAD
 //         SizedBox(
 //           height: 32,
 //           child: OutlinedButton(
@@ -371,3 +372,43 @@
 //     ),
 //   );
 // }
+=======
+        SizedBox(
+          height: 32,
+          child: OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(
+  chatId: 'chat_${username}',
+  opponentUsername: username,
+  opponentName: fullName,
+  opponentAvatarUrl: avatarUrl,
+),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: Colors.grey.shade300,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Nhắn tin",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+>>>>>>> ac1c9e2cc0441badaed3286bce73147d190b98cd

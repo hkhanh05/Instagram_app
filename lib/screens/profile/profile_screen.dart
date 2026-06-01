@@ -12,6 +12,7 @@ import '../story/hightlight_view_screen.dart';
 import '../post/camera_screen.dart';
 import '../profile/follow_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/follow_service.dart';
 
 bool _isAssetImagePath(String path) => path.startsWith('assets/');
 bool _isNetworkImagePath(String path) =>
@@ -63,6 +64,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> _userPosts = [];
   List<Map<String, dynamic>> _highlights = [];
+  List<Map<String, dynamic>> followersFromFirebase = [];
+List<Map<String, dynamic>> followingFromFirebase = [];
   bool _isLoading = true;
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -557,8 +560,8 @@ Future<void> _showCreateHighlightSheet() async {
       builder: (_) => InstagramFollowScreen(
         initialIndex: index,
         username: _userData?['username'] ?? 'instagram_user',
-        followersList: [],
-        followingList: [],
+        followersList: followersFromFirebase,
+        followingList: followingFromFirebase,
       ),
     ),
   );
