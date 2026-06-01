@@ -1,11 +1,52 @@
+import 'dart:io';
+import '../../services/fake_data_service.dart';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'edit_profile_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
 import '../story/story_view_screen.dart';
-import '../../services/fake_data_service.dart';
+import '../../core/utils/helpers.dart';
+import '../story/hightlight_view_screen.dart';
+import '../post/camera_screen.dart';
+import '../profile/follow_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+bool _isAssetImagePath(String path) => path.startsWith('assets/');
+bool _isNetworkImagePath(String path) =>
+    path.startsWith('http://') || path.startsWith('https://');
+
+ImageProvider _imageProviderFromPath(String path) {
+  if (_isAssetImagePath(path)) {
+    return AssetImage(path);
+  }
+  if (_isNetworkImagePath(path)) {
+    return NetworkImage(path);
+  }
+  return FileImage(File(path));
+}
+
+Widget _postImageFromPath(String path,
+    {BoxFit fit = BoxFit.cover, double? height}) {
+  if (path.isEmpty) {
+    return Container(
+      height: height,
+      color: Colors.grey[200],
+      child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+    );
+  }
+
+  if (_isAssetImagePath(path)) {
+    return Image.asset(path, width: double.infinity, height: height, fit: fit);
+  }
+  if (_isNetworkImagePath(path)) {
+    return Image.network(path,
+        width: double.infinity, height: height, fit: fit);
+  }
+  return Image.file(File(path),
+      width: double.infinity, height: height, fit: fit);
+}
 
 class ProfileScreen extends StatefulWidget {
   final int currentUserId;
@@ -18,16 +59,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AudioPlayer _player = AudioPlayer();
-  bool isPlaying = false;
-
-  String currentSong = "Thêm nhạc vào trang cá nhân";
-  String currentUrl = "";
-
+  
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> _userPosts = [];
   List<Map<String, dynamic>> _highlights = [];
   bool _isLoading = true;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -36,162 +73,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // 🔥 ĐÃ SỬA TRIỆT ĐỂ: Chỉ giữ lại 1 hàm duy nhất, ưu tiên dữ liệu từ Firebase trước
-  Future<void> _loadProfileData() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
+ Future<void> _loadProfileData() async {
+  if (!mounted) return;
+  setState(() => _isLoading = true);
 
-    try {
-      Map<String, dynamic>? userMap;
+  try {
+    Map<String, dynamic>? userMap;
 
-      // 1. Kiểm tra nếu có Firebase UID từ Auth truyền sang
-      if (widget.firebaseUid != null && widget.firebaseUid!.isNotEmpty) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.firebaseUid)
-            .get();
+    final currentUser = FirebaseAuth.instance.currentUser;
 
-        if (doc.exists) {
-          userMap = doc.data();
-          // Đồng bộ các key động từ Firebase về khớp với UI cũ của bạn
-          userMap?['username'] = userMap['username'] ?? 'instagram_user';
-          userMap?['fullName'] =
-              userMap['name'] ?? userMap['fullName'] ?? 'Thành viên mới';
-          userMap?['bio'] =
-              userMap['bio'] ?? 'Chào mừng đến với Instagram clone! 🚀';
-          userMap?['followersCount'] = userMap['followersCount'] ?? 0;
-          userMap?['followingCount'] = userMap['followingCount'] ?? 0;
-          userMap?['avatarUrl'] = userMap['avatarUrl'] ?? '';
-        }
+    if (currentUser != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (doc.exists) {
+        userMap = doc.data();
+
+        userMap?['username'] =
+            userMap?['username'] ?? 'instagram_user';
+
+        userMap?['fullName'] =
+            userMap?['fullName'] ??
+            userMap?['name'] ??
+            'Thành viên mới';
+
+        userMap?['bio'] =
+            userMap?['bio'] ??
+            'Chào mừng đến với Instagram clone! 🚀';
+
+        userMap?['followersCount'] =
+            userMap?['followersCount'] ?? 0;
+
+        userMap?['followingCount'] =
+            userMap?['followingCount'] ?? 0;
+
+        userMap?['avatarUrl'] =
+            userMap?['avatarUrl'] ?? '';
       }
+    }
 
-      // 2. BACKUP: Nếu không có UID hoặc không tìm thấy user trên mạng, quay về đọc SQLite cũ (Hồng Hoa)
-      if (userMap == null) {
-        userMap =
-            await DatabaseHelper.instance.getUserById(widget.currentUserId);
-      }
+    if (userMap == null) {
+      userMap = await FakeDataHelper.instance
+          .getUserById(widget.currentUserId);
+    }
 
-      // Tải dữ liệu các bài đăng và tin nổi bật từ SQLite local dưới máy
-      final posts =
-          await DatabaseHelper.instance.getPostsByUserId(widget.currentUserId);
-      final highlightsData =
-          await DatabaseHelper.instance.getHighlights(widget.currentUserId);
+    final posts =
+        await FakeDataHelper.instance.getPostsByUserId(
+      widget.currentUserId,
+    );
 
-      if (mounted) {
-        setState(() {
-          _userData = userMap;
-          _userPosts = posts;
-          _highlights = highlightsData;
+    final highlightsData =
+        await FakeDataHelper.instance.getHighlights(
+      widget.currentUserId,
+    );
 
-          currentSong =
-              userMap?['currentSong'] ?? "Thêm nhạc vào trang cá nhân";
-          currentUrl = userMap?['musicUrl'] ?? "";
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print("❌ Lỗi load dữ liệu kết hợp: $e");
-      if (mounted) setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() {
+        _userData = userMap;
+        _userPosts = posts;
+        _highlights = highlightsData;
+
+
+        _isLoading = false;
+      });
+    }
+  } catch (e) {
+    print("❌ Lỗi load dữ liệu: $e");
+
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   // Cầu nối đồng bộ để lệnh Kéo để Refresh (onRefresh) không bị lỗi biên dịch
-  Future<void> _loadSqliteData() async => await _loadProfileData();
 
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  void _playMusic() async {
-    if (currentUrl.isEmpty) return;
-    try {
-      if (isPlaying) {
-        await _player.pause();
-      } else {
-        await _player.play(UrlSource(currentUrl));
-      }
-      setState(() {
-        isPlaying = !isPlaying;
-      });
-    } catch (e) {
-      print("❌ Lỗi phát nhạc: $e");
-    }
-  }
-
-  void _showMusicMenu() {
-    if (currentUrl.isEmpty) return;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: Colors.grey,
-                      borderRadius: BorderRadius.circular(10))),
-              const SizedBox(height: 20),
-              Theme(
-                data: ThemeData(
-                    iconTheme: const IconThemeData(color: Colors.white)),
-                child: ListTile(
-                    title: Text(currentSong,
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold))),
-              ),
-              const Divider(color: Colors.grey),
-              ListTile(
-                leading: const Icon(Icons.swap_horiz, color: Colors.white),
-                title: const Text("Thay đổi bài hát trên trang cá nhân",
-                    style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _changeSong();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.music_note, color: Colors.white),
-                title: const Text("Xem trang âm thanh",
-                    style: TextStyle(color: Colors.white)),
-                onTap: () => Navigator.pop(context),
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text("Gỡ bài hát trên trang cá nhân",
-                    style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  setState(() {
-                    currentSong = "Thêm nhạc vào trang cá nhân";
-                    isPlaying = false;
-                    currentUrl = "";
-                  });
-                  _player.stop();
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _changeSong() {
-    setState(() {
-      currentSong = "Bài hát đã thay đổi";
-      currentUrl = "";
-      isPlaying = false;
-    });
-    _player.stop();
-  }
+  Future<void> _loadSqliteData() async {
+  await _loadProfileData();
+}
 
   void _showInstagramShareSheet(BuildContext context) {
     int followers = _userData?['followersCount'] ?? 0;
@@ -330,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await DatabaseHelper.instance.deleteHighlight(highlightId);
+              await FakeDataHelper.instance.deleteHighlight(highlightId);
               _loadSqliteData();
             },
             child: const Text("Xóa",
@@ -397,19 +358,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Widget> _buildAppBarActions(BuildContext context) {
     return [
       IconButton(
-          icon: const Icon(Icons.add_box_outlined, color: Colors.black),
-          onPressed: () async {
-            String currentAvatar = _userData?['avatarUrl'] ?? '';
-            await DatabaseHelper.instance.insertPost(widget.currentUserId,
-                currentAvatar, 'Bài viết mới cập nhật tự động từ SQLite! 🚀');
-            _loadSqliteData();
-          }),
+  icon: const Icon(Icons.add_box_outlined, color: Colors.black),
+  onPressed: () async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CameraScreen(),
+      ),
+    );
+
+    if (result == true) {
+      await _loadSqliteData();
+    }
+  },
+),
       IconButton(
           icon: const Icon(Icons.menu, color: Colors.black),
           onPressed: () => Navigator.push(context,
               MaterialPageRoute(builder: (context) => const SettingsScreen()))),
     ];
   }
+
+Future<void> _showCreateHighlightSheet() async {
+  final XFile? pickedImage = await _imagePicker.pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 85,
+  );
+
+  if (pickedImage == null || !mounted) return;
+
+  final titleController = TextEditingController();
+  final selectedImagePath = pickedImage.path;
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(20),
+      ),
+    ),
+    builder: (sheetContext) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom:
+                MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tạo tin nổi bật',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _postImageFromPath(selectedImagePath),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  hintText: 'Tên highlight',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      final title =
+                          titleController.text.trim();
+
+                      await FakeDataHelper.instance
+                          .insertHighlight(
+                        widget.currentUserId,
+                        title.isEmpty ? 'Mới' : title,
+                        selectedImagePath,
+                      );
+
+                      if (!mounted) return;
+
+                      Navigator.pop(sheetContext);
+
+                      Future.delayed(
+                        const Duration(milliseconds: 300),
+                        () {
+                          if (mounted) {
+                            _loadProfileData();
+                          }
+                        },
+                      );
+                    } catch (e) {
+                      debugPrint(
+                        'Lỗi lưu highlight: $e',
+                      );
+                    }
+                  },
+                  child: const Text('Lưu highlight'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+}
 
   Widget _buildHeader(BuildContext context) {
     int followers = _userData?['followersCount'] ?? 0;
@@ -462,47 +539,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(_userData?['bio'] ?? 'Chào mừng đến với Instagram clone! 🚀'),
           const SizedBox(height: 8),
-          if (currentUrl.isNotEmpty)
-            GestureDetector(
-              onTap: _playMusic,
-              onLongPress: _showMusicMenu,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(15)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(isPlaying ? Icons.pause : Icons.music_note,
-                        size: 16, color: Colors.black),
-                    const SizedBox(width: 4),
-                    Text(currentSong,
-                        style:
-                            const TextStyle(fontSize: 13, color: Colors.black)),
-                  ],
-                ),
-              ),
-            ),
+          
         ],
       ),
     );
   }
 
   void _goToFollow(
-      BuildContext context, int index, int followers, int following) {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => InstagramFollowScreen(
-                  initialIndex: index,
-                  username: _userData?['username'] ?? 'instagram_user',
-                  followersCount: followers,
-                  followingCount: following,
-                )));
-  }
-
+    BuildContext context,
+    int index,
+    int followers,
+    int following,
+) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => InstagramFollowScreen(
+        initialIndex: index,
+        username: _userData?['username'] ?? 'instagram_user',
+        followersList: [],
+        followingList: [],
+      ),
+    ),
+  );
+}
   Widget _buildButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -547,16 +607,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStoryHighlights() {
-    if (_highlights.isEmpty) return const SizedBox.shrink();
+    final visibleHighlights = [
+      {'isAdd': 'true', 'title': 'Mới', 'imageUrl': '', 'id': 0},
+      ..._highlights.where((item) => item['isAdd'] != 'true'),
+    ];
 
     return Container(
       height: 110,
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _highlights.length,
+        itemCount: visibleHighlights.length,
         itemBuilder: (context, index) {
-          final item = _highlights[index];
+          final item = visibleHighlights[index];
           bool isAddButton = item['isAdd'] == 'true';
           String highlightImg = item['imageUrl']?.toString() ?? '';
           int highlightId = item['id'] ?? 0;
@@ -564,12 +627,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           return GestureDetector(
             onTap: () {
-              if (!isAddButton)
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            StoryViewScreen(initialUser: (index - 1) % 3)));
+              if (isAddButton) {
+                _showCreateHighlightSheet();
+              } else {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => HighlightViewerScreen(
+        imagePath: highlightImg,
+        title: title,
+      ),
+    ),
+  );
+}
             },
             onLongPress: () {
               if (!isAddButton && highlightId != 0) {
@@ -590,7 +660,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundColor:
                           isAddButton ? Colors.white : Colors.grey[200],
                       backgroundImage: (!isAddButton && highlightImg.isNotEmpty)
-                          ? NetworkImage(highlightImg)
+                          ? _imageProviderFromPath(highlightImg)
                           : null,
                       child: isAddButton
                           ? const Icon(Icons.add, color: Colors.black, size: 30)
@@ -653,76 +723,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           },
           child: url.isNotEmpty
-              ? Image.network(url, fit: BoxFit.cover)
+              ? _postImageFromPath(url)
               : Container(
                   color: Colors.grey[300],
                   child: const Icon(Icons.image_not_supported,
                       color: Colors.grey)),
         );
       },
-    );
-  }
-}
-
-class InstagramFollowScreen extends StatelessWidget {
-  final int initialIndex;
-  final String username;
-  final int followersCount;
-  final int followingCount;
-
-  const InstagramFollowScreen(
-      {super.key,
-      this.initialIndex = 0,
-      required this.username,
-      required this.followersCount,
-      required this.followingCount});
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      initialIndex: initialIndex,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-          leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.pop(context)),
-          title: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.lock_outline, size: 18, color: Colors.black),
-            const SizedBox(width: 8),
-            Text(username,
-                style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18)),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.black),
-          ]),
-          bottom: TabBar(
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.black,
-            indicatorWeight: 1.5,
-            tabs: [
-              Tab(text: "$followersCount Người theo dõi"),
-              Tab(text: "$followingCount Đang theo dõi"),
-            ],
-          ),
-        ),
-        body: TabBarView(children: [
-          FollowListContent(
-              isFollowerTab: true,
-              maxItems: followersCount,
-              currentUsername: username),
-          FollowListContent(
-              isFollowerTab: false,
-              maxItems: followingCount,
-              currentUsername: username)
-        ]),
-      ),
     );
   }
 }
@@ -769,7 +776,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _loadComments(int postId) async {
-    final comments = await DatabaseHelper.instance.getCommentsByPostId(postId);
+    final comments = await FakeDataHelper.instance.getCommentsByPostId(postId);
     if (mounted) {
       setState(() {
         _commentsMap[postId] = comments;
@@ -832,7 +839,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await DatabaseHelper.instance.deletePost(postId);
+              await FakeDataHelper.instance.deletePost(postId);
               setState(() {
                 _currentPosts.removeWhere((post) => post['id'] == postId);
               });
@@ -924,7 +931,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       TextButton(
                         onPressed: () async {
                           if (commentController.text.isNotEmpty) {
-                            await DatabaseHelper.instance.insertComment(postId,
+                            await FakeDataHelper.instance.insertComment(postId,
                                 widget.username, commentController.text);
                             commentController.clear();
                             await _loadComments(postId);
@@ -998,19 +1005,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           title: Text(widget.username,
               style:
                   const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          subtitle: const Text('Âm thanh gốc', style: TextStyle(fontSize: 12)),
           trailing: IconButton(
             icon: const Icon(Icons.more_vert, color: Colors.black),
             onPressed: () => _showPostOptions(postId),
           ),
         ),
-        postImg.isNotEmpty
-            ? Image.network(postImg, width: double.infinity, fit: BoxFit.cover)
-            : Container(
-                height: 300,
-                color: Colors.grey[200],
-                child: const Icon(Icons.broken_image,
-                    size: 50, color: Colors.grey)),
+        _postImageFromPath(postImg, height: 300),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
@@ -1023,7 +1023,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     _likesMap[postId] =
                         isLiked ? currentLikes + 1 : currentLikes - 1;
                   });
-                  await DatabaseHelper.instance
+                  await FakeDataHelper.instance
                       .updatePostLikes(postId, _likesMap[postId]!);
                 },
                 child: Icon(isLiked ? Icons.favorite : Icons.favorite_border,
@@ -1066,126 +1066,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           ),
         ),
         const Divider(),
-      ],
-    );
-  }
-}
-
-class FollowListContent extends StatefulWidget {
-  final bool isFollowerTab;
-  final int maxItems;
-  final String currentUsername;
-
-  const FollowListContent(
-      {super.key,
-      required this.isFollowerTab,
-      required this.maxItems,
-      required this.currentUsername});
-
-  @override
-  State<FollowListContent> createState() => _FollowListContentState();
-}
-
-class _FollowListContentState extends State<FollowListContent> {
-  final Map<int, bool> _followingMap = {};
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            height: 38,
-            decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(10)),
-            child: const TextField(
-                decoration: InputDecoration(
-                    hintText: "Tìm kiếm",
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
-                    border: InputBorder.none)),
-          ),
-        ),
-        if (widget.isFollowerTab && widget.maxItems > 0) ...[
-          const Padding(
-              padding: EdgeInsets.only(left: 16, bottom: 8),
-              child: Text("Hạng mục",
-                  style: TextStyle(fontWeight: FontWeight.bold))),
-          _buildCategoryItem(
-              "Người không theo dõi lại",
-              "Các tài khoản liên quan đến ${widget.currentUsername}",
-              Icons.group_remove_outlined),
-          _buildCategoryItem("Ít tương tác nhất",
-              "Danh sách phân tích tương tác", Icons.unfold_less),
-          const Divider(),
-        ],
-        widget.maxItems == 0
-            ? const Padding(
-                padding: EdgeInsets.all(30.0),
-                child: Center(
-                    child: Text("Danh sách trống",
-                        style: TextStyle(color: Colors.grey))),
-              )
-            : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: widget.maxItems,
-                itemBuilder: (context, index) => ListTile(
-                  leading: CircleAvatar(
-                      backgroundColor: Colors.grey[300],
-                      child: const Icon(Icons.person, color: Colors.white)),
-                  title: Text("user_insta_$index",
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text("Tên người dùng $index",
-                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  trailing: _buildListTrailing(widget.isFollowerTab, index),
-                ),
-              ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryItem(String title, String sub, IconData icon) =>
-      ListTile(
-        leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade300)),
-            child: Icon(icon, color: Colors.black, size: 20)),
-        title: Text(title, style: const TextStyle(fontSize: 14)),
-        subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
-      );
-
-  Widget _buildListTrailing(bool isFollowerTab, int index) {
-    bool isFollowedBack =
-        _followingMap[index] ?? (isFollowerTab && index % 3 == 0);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 30,
-          child: ElevatedButton(
-            onPressed: () =>
-                setState(() => _followingMap[index] = !isFollowedBack),
-            style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isFollowedBack ? Colors.blue : Colors.grey[200],
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
-            child: Text(isFollowedBack ? "Theo dõi lại" : "Nhắn tin",
-                style: TextStyle(
-                    color: isFollowedBack ? Colors.white : Colors.black,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Icon(isFollowerTab ? Icons.close : Icons.more_vert,
-            color: Colors.grey, size: 20),
       ],
     );
   }

@@ -1,7 +1,8 @@
 import "package:flutter/material.dart";
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:cloud_firestore/cloud_firestore.dart'; // Đã thêm
 import "../../controllers/login_controller.dart";
-import "../../models/user_model.dart"; // Đảm bảo đường dẫn này đúng
+import "../../models/user_model.dart";
 import "../main/main_screen.dart";
 
 class RegisterScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool passwordError = false;
   bool nameError = false;
   bool usernameError = false;
+  bool isLoading = false;
 
   String? selectedMonth;
   String? selectedDay;
@@ -45,7 +47,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       usernameError = usernameController.text.trim().isEmpty;
     });
 
-    // Kiểm tra thêm việc chọn ngày tháng năm sinh
     if (selectedMonth == null || selectedDay == null || selectedYear == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -56,10 +57,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (!emailError && !passwordError && !nameError && !usernameError) {
-      // Ghép ngày tháng năm lại thành chuỗi chuỗi dạng: "DD/MM/YYYY"
+      // Hiển thị Loading Dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("Đang đăng ký..."),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
       String birthdayStr = "$selectedDay/$selectedMonth/$selectedYear";
 
-      // Khởi tạo Object User đầy đủ thuộc tính để truyền sang Controller
       User newUser = User(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
@@ -71,27 +91,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
       bool success = await _loginController.register(newUser);
 
       if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Đăng ký thành công!"),
-                backgroundColor: Colors.green),
-          );
+        // Đóng loading dialog
+        Navigator.pop(context);
 
-          // Lấy UID của tài khoản Firebase hiq
-          //q
-          //ện tại vừa đăng ký xong
+        if (success) {
           final String? currentFirebaseUid =
               fb_auth.FirebaseAuth.instance.currentUser?.uid;
 
-          // Điều hướng và truyền UID sang MainScreen
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainScreen(firebaseUid: currentFirebaseUid),
-            ),
-            (route) => false,
-          );
+          if (currentFirebaseUid != null) {
+            try {
+              // 🔥 KHỞI TẠO HỒ SƠ LÊN FIRESTORE
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentFirebaseUid)
+                  .set({
+                'uid': currentFirebaseUid,
+                'email': emailController.text.trim(),
+                'fullName': nameController.text.trim(),
+                'username': usernameController.text.trim(),
+                'birthday': birthdayStr,
+                'bio': 'Chào mừng đến với Instagram clone! 🚀',
+                'avatarUrl': '',
+                'followersCount': 0,
+                'followingCount': 0,
+                'currentSong': "Thêm nhạc vào trang cá nhân",
+                'musicUrl': "",
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+              print("🚀 Đã khởi tạo hồ sơ người dùng mới lên Firestore!");
+            } catch (e) {
+              print("❌ Lỗi khởi tạo Firestore: $e");
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text("Lỗi: ${e.toString()}"),
+                      backgroundColor: Colors.red),
+                );
+              }
+              return;
+            }
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Đăng ký thành công!"),
+                  backgroundColor: Colors.green),
+            );
+
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainScreen(firebaseUid: currentFirebaseUid),
+              ),
+              (route) => false,
+            );
+          }
+        } else {
+          // Hiển thị lỗi đăng ký
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Đăng ký thất bại! Vui lòng thử lại."),
+                  backgroundColor: Colors.red),
+            );
+          }
         }
       }
     }
@@ -187,16 +251,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _handleSignUp, // Gọi hàm đã sửa
+                        onPressed: isLoading ? null : _handleSignUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text(
-                          "Sign up",
-                          style: TextStyle(color: Colors.white),
+                        child: Text(
+                          isLoading ? "Đang xử lý..." : "Sign up",
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
@@ -222,7 +286,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // --- WIDGET HELPER ---
   Widget buildTextField(String hint, TextEditingController controller,
       {bool isPassword = false,
       required FocusNode focusNode,

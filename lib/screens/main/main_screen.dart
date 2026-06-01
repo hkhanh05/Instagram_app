@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
-// IMPORT SCREENS (Đảm bảo đúng path của project bạn nhé)
 import '../feed/feed_screen.dart';
 import '../search/search_screen.dart';
-import '../post/create_post_screen.dart';
 import '../message/message_screen.dart';
 import '../profile/profile_screen.dart';
+import '../post/camera_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final String? firebaseUid;
 
-  // Sửa chính xác hàm khởi tạo nhận biến dynamic
-  MainScreen({super.key, this.firebaseUid});
+  const MainScreen({
+    super.key,
+    this.firebaseUid,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -20,20 +21,24 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Khai báo danh sách các màn hình
   late List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
-    // Khởi tạo các màn hình một lần duy nhất tại đây khi khởi chạy widget
+
     _screens = [
       const FeedScreen(),
       const SearchScreen(),
-      const CreatePostScreen(),
+
+      // TAB POST
+      const CameraScreen(),
+
       const MessageScreen(),
-      // Truyền an toàn Firebase UID vào ProfileScreen
-      ProfileScreen(firebaseUid: widget.firebaseUid),
+
+      ProfileScreen(
+        firebaseUid: widget.firebaseUid,
+      ),
     ];
   }
 
@@ -42,19 +47,18 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children:
-            _screens, // Truyền trực tiếp danh sách biến tĩnh tĩnh đã lưu trong bộ nhớ
+        children: _screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        type: BottomNavigationBarType.fixed,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

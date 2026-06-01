@@ -1,120 +1,196 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class CreatePostScreen extends StatelessWidget {
+import '../../providers/post_provider.dart';
+import '../../services/fake_data_service.dart';
+
+class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
 
   @override
+  State<CreatePostScreen> createState() =>
+      _CreatePostScreenState();
+}
+
+class _CreatePostScreenState
+    extends State<CreatePostScreen> {
+  final TextEditingController captionController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    captionController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 📥 Nhận đường dẫn file ảnh (imagePath) truyền qua arguments từ CameraScreen
-    final String imagePath =
-        ModalRoute.of(context)!.settings.arguments as String;
+    final String? imagePath =
+        ModalRoute.of(context)?.settings.arguments
+            as String?;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. 🖼️ ẢNH NỀN FULL MÀN HÌNH (Bo góc nhẹ giống ảnh mẫu)
           Positioned.fill(
             child: SafeArea(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.file(
-                  File(imagePath),
-                  fit: BoxFit.cover,
-                ),
+                child: imagePath == null
+                    ? Container(
+                        color: Colors.black,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image,
+                            color: Colors.white,
+                            size: 120,
+                          ),
+                        ),
+                      )
+                    : Image.file(
+                        File(imagePath),
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
           ),
 
-          // 2. ✖️ NÚT THOÁT (Góc trên cùng bên trái)
+          // Nút đóng
           Positioned(
             top: 60,
             left: 20,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
               child: CircleAvatar(
-                backgroundColor: Colors.black.withOpacity(0.4),
+                backgroundColor:
+                    Colors.black.withOpacity(0.4),
                 radius: 20,
-                child: const Icon(Icons.close, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
           ),
 
-          // 3. 📑 THANH ICON CHỨC NĂNG XẾP DỌC (Góc trên cùng bên phải)
+          // Menu bên phải
           Positioned(
             top: 60,
             right: 20,
             child: Column(
               children: [
-                _buildRightActionButton(Icons.text_fields, "Aa"),
-                _buildRightActionButton(Icons.sticky_note_2_outlined, null),
-                _buildRightActionButton(Icons.music_note, null),
                 _buildRightActionButton(
-                    Icons.auto_awesome, null), // Icon bộ lọc lấp lánh
-                _buildRightActionButton(Icons.keyboard_arrow_down, null),
+                  Icons.text_fields,
+                  "Aa",
+                ),
+                _buildRightActionButton(
+                  Icons.sticky_note_2_outlined,
+                  null,
+                ),
+                _buildRightActionButton(
+                  Icons.music_note,
+                  null,
+                ),
+                _buildRightActionButton(
+                  Icons.auto_awesome,
+                  null,
+                ),
+                _buildRightActionButton(
+                  Icons.keyboard_arrow_down,
+                  null,
+                ),
               ],
             ),
           ),
 
-          // 4. ✍️ Ô NHẬP CHÚ THÍCH / CAPTION (Góc đáy bên trái)
+          // Caption
           Positioned(
             bottom: 110,
             left: 24,
             right: 24,
             child: TextField(
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              controller: captionController,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
               decoration: InputDecoration(
                 hintText: 'Thêm chú thích...',
                 hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.8), fontSize: 16),
+                  color:
+                      Colors.white.withOpacity(0.8),
+                ),
                 border: InputBorder.none,
               ),
             ),
           ),
 
-          // 5. 🛠️ THANH CÔNG CỤ ĐĂNG BÀI Ở ĐÁY (Tin của bạn, Bạn thân, Gửi đi)
+          // Thanh dưới
           Positioned(
             bottom: 30,
             left: 16,
             right: 16,
             child: Row(
               children: [
-                // Nút "Tin của bạn"
                 Expanded(
                   child: _buildBottomButton(
                     icon: Icons.person_pin,
                     label: 'Tin của bạn',
-                    onPressed: () {
-                      // Xử lý đăng bài...
-                    },
+                    onPressed: () {},
                   ),
                 ),
+
                 const SizedBox(width: 12),
 
-                // Nút "Bạn thân"
                 Expanded(
                   child: _buildBottomButton(
                     icon: Icons.star,
                     label: 'Bạn thân',
                     iconColor: Colors.green,
-                    onPressed: () {
-                      // Xử lý đăng...
-                    },
+                    onPressed: () {},
                   ),
                 ),
+
                 const SizedBox(width: 12),
 
-                // Nút tròn mũi tên màu xanh dương để "Tiếp tục"
                 GestureDetector(
-                  onTap: () {
-                    // Xử lý đăng bài trực tiếp...
+                  onTap: () async {
+                    if (imagePath == null) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Vui lòng chọn ảnh',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    await FakeDataHelper.instance.insertPost(
+  1,
+  imagePath,
+  captionController.text.trim().isEmpty
+      ? 'Bài viết mới'
+      : captionController.text.trim(),
+);
+
+if (mounted) {
+  Navigator.pop(context, true);
+}
                   },
                   child: const CircleAvatar(
                     radius: 26,
-                    backgroundColor: Colors.indigoAccent,
-                    child: Icon(Icons.arrow_forward,
-                        color: Colors.white, size: 24),
+                    backgroundColor:
+                        Colors.indigoAccent,
+                    child: Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
               ],
@@ -125,25 +201,36 @@ class CreatePostScreen extends StatelessWidget {
     );
   }
 
-  // Hàm tạo nhanh các icon tròn nhỏ bên phải
-  Widget _buildRightActionButton(IconData icon, String? customText) {
+  Widget _buildRightActionButton(
+    IconData icon,
+    String? customText,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding:
+          const EdgeInsets.symmetric(vertical: 8),
       child: CircleAvatar(
         radius: 22,
-        backgroundColor: Colors.black.withOpacity(0.4),
+        backgroundColor:
+            Colors.black.withOpacity(0.4),
         child: customText != null
-            ? Text(customText,
+            ? Text(
+                customText,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16))
-            : Icon(icon, color: Colors.white, size: 22),
+                  color: Colors.white,
+                  fontWeight:
+                      FontWeight.bold,
+                  fontSize: 16,
+                ),
+              )
+            : Icon(
+                icon,
+                color: Colors.white,
+                size: 22,
+              ),
       ),
     );
   }
 
-  // Hàm tạo nhanh nút dài dưới đáy
   Widget _buildBottomButton({
     required IconData icon,
     required String label,
@@ -155,23 +242,32 @@ class CreatePostScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white.withOpacity(0.15),
+          backgroundColor:
+              Colors.white.withOpacity(0.15),
           foregroundColor: Colors.white,
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(25),
+          ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment:
+              MainAxisAlignment.center,
           children: [
-            Icon(icon, color: iconColor, size: 20),
+            Icon(
+              icon,
+              color: iconColor,
+              size: 20,
+            ),
             const SizedBox(width: 8),
-            Text(label,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    overflow: TextOverflow.ellipsis)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),
