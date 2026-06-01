@@ -20,16 +20,16 @@ class StoryItem extends StatelessWidget {
       child: Container(
         width: 80,
         margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        child: Column(
+        child: const Column(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 30,
               backgroundImage: NetworkImage(
                 'https://i.pravatar.cc/150',
               ),
             ),
-            const SizedBox(height: 6),
-            const Text("user"),
+            SizedBox(height: 6),
+            Text("user"),
           ],
         ),
       ),
