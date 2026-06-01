@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // Màn hình đầu tiên
-      home: const MainScreen(),
+      home: MainScreen(),
     );
   }
 }
