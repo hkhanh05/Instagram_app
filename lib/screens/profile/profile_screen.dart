@@ -13,6 +13,7 @@ import '../post/camera_screen.dart';
 import '../profile/follow_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/follow_service.dart';
+import '../message/chat_screen.dart';
 
 bool _isAssetImagePath(String path) => path.startsWith('assets/');
 bool _isNetworkImagePath(String path) =>
@@ -67,6 +68,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Map<String, dynamic>> followersFromFirebase = [];
 List<Map<String, dynamic>> followingFromFirebase = [];
   bool _isLoading = true;
+  int _followersCount = 0;
+  int _followingCount = 0;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -83,13 +86,17 @@ List<Map<String, dynamic>> followingFromFirebase = [];
   try {
     Map<String, dynamic>? userMap;
 
-    final currentUser = FirebaseAuth.instance.currentUser;
 
     final profileUid =
     widget.firebaseUid ??
     FirebaseAuth.instance.currentUser?.uid;
 
 if (profileUid != null) {
+  _followersCount =
+    await FollowService.getFollowersCount(profileUid);
+
+_followingCount =
+    await FollowService.getFollowingCount(profileUid);
   final doc = await FirebaseFirestore.instance
       .collection('users')
       .doc(profileUid)
@@ -126,10 +133,19 @@ if (profileUid != null) {
           .getUserById(widget.currentUserId);
     }
 
-    final posts =
-        await FakeDataHelper.instance.getPostsByUserId(
-      widget.currentUserId,
-    );
+    final postsSnap = await FirebaseFirestore.instance
+    .collection('posts')
+    .where('userId', isEqualTo: profileUid)
+    .get();
+
+final posts = postsSnap.docs
+    .map((e) => {
+          'id': e.id,
+          'imageUrl': e['imageUrl'] ?? '',
+          'caption': e['caption'] ?? '',
+          'likesCount': e['likesCount'] ?? 0,
+        })
+    .toList();
 
     final highlightsData =
         await FakeDataHelper.instance.getHighlights(
@@ -496,8 +512,8 @@ Future<void> _showCreateHighlightSheet() async {
 }
 
   Widget _buildHeader(BuildContext context) {
-    int followers = _userData?['followersCount'] ?? 0;
-    int following = _userData?['followingCount'] ?? 0;
+    int followers = _followersCount;
+    int following = _followingCount;
     String avatar = _userData?['avatarUrl'] ?? '';
 
     // 🔥 ĐÃ SỬA: Ép giá trị hiển thị Tên đầy đủ từ Firebase
@@ -571,47 +587,111 @@ Future<void> _showCreateHighlightSheet() async {
   );
 }
   Widget _buildButtons(BuildContext context) {
+  final myUid = FirebaseAuth.instance.currentUser?.uid;
+
+  final isMyProfile =
+      widget.firebaseUid == null ||
+      widget.firebaseUid == myUid;
+
+  if (!isMyProfile) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Expanded(
-              child: ElevatedButton(
-            onPressed: () async {
-              final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => EditProfileScreen(
-                          currentUserId: widget.currentUserId)));
-              if (result == true) {
-                _loadSqliteData();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[200],
-                foregroundColor: Colors.black,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
-            child: const Text('Chỉnh sửa',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          )),
+            child: ElevatedButton(
+              onPressed: () async {
+                await FollowService.followUser(
+                  widget.firebaseUid!,
+                );
+
+                await _loadProfileData();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã theo dõi'),
+                  ),
+                );
+              },
+              child: const Text('Theo dõi'),
+            ),
+          ),
           const SizedBox(width: 10),
           Expanded(
-              child: OutlinedButton(
-            onPressed: () => _showInstagramShareSheet(context),
-            style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.grey.shade300),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
-            child: const Text('Chia sẻ',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          )),
+            child: OutlinedButton(
+              onPressed: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) {
+        final myUid =
+            FirebaseAuth.instance.currentUser!.uid;
+
+        final ids = [
+          myUid,
+          widget.firebaseUid!,
+        ];
+
+        ids.sort();
+
+        final chatId = ids.join('_');
+
+        return ChatScreen(
+          chatId: chatId,
+          opponentUsername:
+              _userData?['username'] ?? '',
+          opponentName:
+              _userData?['fullName'] ?? '',
+          opponentAvatarUrl:
+              _userData?['avatarUrl'] ?? '',
+        );
+      },
+    ),
+  );
+},
+              child: const Text('Nhắn tin'),
+            ),
+          ),
         ],
       ),
     );
   }
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    child: Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProfileScreen(
+                    currentUserId: widget.currentUserId,
+                  ),
+                ),
+              );
+
+              if (result == true) {
+                _loadSqliteData();
+              }
+            },
+            child: const Text('Chỉnh sửa'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => _showInstagramShareSheet(context),
+            child: const Text('Chia sẻ'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildStoryHighlights() {
     final visibleHighlights = [
