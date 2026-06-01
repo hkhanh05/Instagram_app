@@ -147,8 +147,8 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: const [
+                  const Row(
+                    children: [
                       CircleAvatar(
                         backgroundImage:
                             NetworkImage('https://i.pravatar.cc/150'),
